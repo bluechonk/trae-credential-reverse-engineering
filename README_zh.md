@@ -2,7 +2,7 @@
 
 [English](README.md) | [中文](README_zh.md)
 
-对 Windows 上 TRAE 桌面客户端本地凭证存储的系统性逆向工程方法论。
+对 Windows 上 TraeWork CN 桌面客户端本地凭证存储的系统性逆向工程方法论。
 
 ## 目录
 
@@ -20,7 +20,7 @@
 
 **目标：了解目标应用。**
 
-在触碰任何文件之前，先建立对应用栈的基本认知：
+目标是 **TraeWork CN**（也称 TRAE SOLO CN），一款桌面 IDE 客户端。在触碰任何文件之前，先建立对应用栈的基本认知：
 
 1. **识别技术框架。** 检查安装目录中的框架特征：
    - Electron：查找 `electron.exe`、`resources/app.asar`、`chrome_elf.dll`
@@ -54,12 +54,12 @@
 对于 Electron 应用，最常见的位置是：
 
 ```
-%APPDATA%\<AppName>\
-%APPDATA%\<AppName>\User\globalStorage\
-%APPDATA%\<AppName>\Local Storage\
-%APPDATA%\<AppName>\Session Storage\
-%APPDATA%\<AppName>\Cookies\
-%APPDATA%\<AppName>\Local Storage\leveldb\
+%APPDATA%\TraeWork CN\
+%APPDATA%\TraeWork CN\User\globalStorage\
+%APPDATA%\TraeWork CN\Local Storage\
+%APPDATA%\TraeWork CN\Session Storage\
+%APPDATA%\TraeWork CN\Cookies\
+%APPDATA%\TraeWork CN\Local Storage\leveldb\
 ```
 
 ### 登录前后对比
@@ -219,7 +219,7 @@ Interceptor.attach(EVP_CipherInit_ex, {
 **工作流程：**
 
 1. 启动桌面客户端
-2. 附加 Frida：`frida -n "TRAE.exe" -f hook-crypto.js`
+2. 附加 Frida：`frida -n "TraeWork.exe" -f hook-crypto.js`
 3. 触发登录或凭证刷新
 4. 从控制台输出捕获算法、密钥和 IV
 

@@ -2,7 +2,7 @@
 
 [English](README.md) | [中文](README_zh.md)
 
-A systematic methodology for reverse engineering the local credential storage of the TRAE desktop client on Windows.
+A systematic methodology for reverse engineering the local credential storage of the TraeWork CN desktop client on Windows.
 
 ## Table of Contents
 
@@ -20,7 +20,7 @@ A systematic methodology for reverse engineering the local credential storage of
 
 **Goal: Understand the target application.**
 
-Before touching any file, establish a baseline understanding of the application stack:
+The target is **TraeWork CN** (also known as TRAE SOLO CN), a desktop IDE client. Before touching any file, establish a baseline understanding of the application stack:
 
 1. **Identify the framework.** Check the installation directory for framework signatures:
    - Electron: look for `electron.exe`, `resources/app.asar`, `chrome_elf.dll`
@@ -54,12 +54,12 @@ Search the standard application data paths:
 For Electron applications, the most common locations are:
 
 ```
-%APPDATA%\<AppName>\
-%APPDATA%\<AppName>\User\globalStorage\
-%APPDATA%\<AppName>\Local Storage\
-%APPDATA%\<AppName>\Session Storage\
-%APPDATA%\<AppName>\Cookies\
-%APPDATA%\<AppName>\Local Storage\leveldb\
+%APPDATA%\TraeWork CN\
+%APPDATA%\TraeWork CN\User\globalStorage\
+%APPDATA%\TraeWork CN\Local Storage\
+%APPDATA%\TraeWork CN\Session Storage\
+%APPDATA%\TraeWork CN\Cookies\
+%APPDATA%\TraeWork CN\Local Storage\leveldb\
 ```
 
 ### Before/After Comparison
@@ -68,17 +68,20 @@ This is the most reliable method to find the data directory:
 
 1. **Before login**: Export a recursive directory listing:
    ```powershell
-   Get-ChildItem "$env:APPDATA\<AppName>" -Recurse -Force | Select-Object FullName, Length, LastWriteTime | Export-Csv before.csv
+   Get-ChildItem "$env:APPDATA\TraeWork CN" -Recurse -Force | Select-Object FullName, Length, LastWriteTime | Export-Csv before.csv
    ```
 
 2. **Log in** to the desktop client.
 
 3. **After login**: Export again:
    ```powershell
-   Get-ChildItem "$env:APPDATA\<AppName>" -Recurse -Force | Select-Object FullName, Length, LastWriteTime | Export-Csv after.csv
+   Get-ChildItem "$env:APPDATA\TraeWork CN" -Recurse -Force | Select-Object FullName, Length, LastWriteTime | Export-Csv after.csv
    ```
 
-4. **Diff** the two listings to identify created, modified, or deleted files.
+4. **Diff** the two listings:
+   ```powershell
+   Compare-Object (Import-Csv before.csv) (Import-Csv after.csv) -Property FullName
+   ```
 
 ### Target File Types
 
@@ -219,7 +222,7 @@ Interceptor.attach(EVP_CipherInit_ex, {
 **Workflow:**
 
 1. Launch the desktop client
-2. Attach Frida: `frida -n "TRAE.exe" -f hook-crypto.js`
+2. Attach Frida: `frida -n "TraeWork.exe" -f hook-crypto.js`
 3. Trigger a login or credential refresh
 4. Capture the algorithm, key, and IV from console output
 
