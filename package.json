@@ -1,0 +1,42 @@
+{
+  "name": "trae-credential-reverse-engineering",
+  "version": "0.1.0",
+  "description": "Systematic methodology for reverse engineering TraeWork CN desktop client local credential storage",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "phase1": "tsx src/phase1-reconnaissance/index.ts",
+    "phase2": "tsx src/phase2-data-collection/index.ts",
+    "phase3": "tsx src/phase3-format-analysis/index.ts",
+    "phase4": "tsx src/phase4-encryption-id/index.ts",
+    "phase5": "tsx src/phase5-key-extraction/index.ts",
+    "phase6": "tsx src/phase6-decryption/index.ts",
+    "test": "vitest",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@electron/asar": "^4.3.0",
+    "better-sqlite3": "^11.0.0",
+    "chalk": "^5.3.0",
+    "chokidar": "^3.6.0",
+    "commander": "^12.0.0",
+    "fast-csv": "^5.0.0",
+    "frida": "^16.4.0",
+    "ora": "^8.0.0",
+    "winreg": "^1.2.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^22.0.0",
+    "@types/winreg": "^1.2.36",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

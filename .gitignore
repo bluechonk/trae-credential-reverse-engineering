@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific - extracted/decrypted data (sensitive!)
+output/
+extracted/
+decrypted/
+*.decrypted
+
+# Screenshots with potential sensitive data
+docs/**/*.png
+docs/**/*.jpg
+!docs/README.md
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
