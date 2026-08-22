@@ -4,6 +4,15 @@
 
 Systematic reverse engineering of the **TRAE SOLO CN** (TraeWork CN) desktop client credential storage on Windows.
 
+<div align="center">
+
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript)
+![Node.js](https://img.shields.io/badge/Node.js-20+-green?logo=node.js)
+![Tests](https://img.shields.io/badge/tests/18-passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-yellow)
+
+</div>
+
 ## Results
 
 | Metric | Value |
@@ -18,23 +27,10 @@ Systematic reverse engineering of the **TRAE SOLO CN** (TraeWork CN) desktop cli
 ## Quick Start
 
 ```bash
-# Install
 npm install
-
-# Run reverse engineering pipeline
-npm run phase1          # Reconnaissance
-npm run phase2          # Data collection
-npm run phase3          # Entropy & magic analysis
-npm run phase4          # Encryption identification
-npm run phase5          # Key extraction (runtime table extraction)
 npm run phase6          # Decryption & validation
-
-# Functional commands
-npm run dev -- validate # Validate credential against live API
-npm run dev -- checkin  # Daily check-in: status → claim → verify
-npm run dev -- refresh  # Rotate token via refreshToken (close TRAE first!)
-
-# Test
+npm run dev -- checkin  # Daily check-in
+npm run dev -- refresh  # Rotate token (close TRAE first!)
 npx vitest run          # 18/18 passing
 ```
 
@@ -49,17 +45,7 @@ npx vitest run          # 18/18 passing
 | 5. Key Extract | Get pepper tables | 4x 64B tables at `,Em=async t=>` anchor |
 | 6. Decrypt & Validate | Decrypt + API test | 4/4 decrypted, `loginAllowed:true` |
 
-## Documentation
-
-| Document | Content |
-|---|---|
-| `docs/FINDINGS.md` | Full algorithm analysis (byteCrypto, ExchangeToken, check-in) |
-| `docs/FLOW.md` | Complete process walkthrough |
-| `docs/phase6-decryption/API-REFERENCE.md` | **89 API endpoints tested** with auth details |
-| `docs/phase1~6-*/RUN-LOG.md` | Per-phase execution logs |
-| `docs/README.md` | Masking conventions & folder status |
-
-## API Categories (auth headers)
+## API Discovery (89 endpoints tested)
 
 | Category | Auth Header | Working | Total |
 |---|---|---|---|
@@ -68,6 +54,61 @@ npx vitest run          # 18/18 passing
 | **Cloudide** | `x-cloudide-token` | 7 | 36 |
 | **Connector** | `Cloud-IDE-JWT` | 1 | 9 |
 | **GTM** | `Cloud-IDE-JWT` | 0 | 4 |
+
+### Business Domains (14 categories)
+
+```
+① Core IDE     → Remote envs, projects, MCP, skills, chat sessions
+② Account      → Login, device binding, OAuth, third-party integrations
+③ Payment      → Billing, plans, entitlements, token refresh
+④ Growth       → Daily check-in, activities, fission, invite codes
+⑤ Content      → Templates, materials, agent sharing
+⑥ Enterprise   → Feishu/Connector/Supabase/Vercel
+⑦ Operations   → Dynamic config, feature flags, notifications
+⑧ Design       → HTML→Figma, design libraries, visual editor
+⑨ Extensions   → Plugins, skills, agent marketplace
+⑩ IM Bridge    → Feishu/messaging integration
+```
+
+## Key Findings
+
+### byteCrypto Envelope
+```
+Offset  Length  Content
+0       6       header = 74 63 05 10 00 00 ("tc" + ver5 + 0x10)
+6       32      random (crypto.getRandomValues)
+38      n*16    AES-128-CBC(key, iv, SHA512(plaintext) || plaintext)
+```
+
+Key derivation: `pepper = Vie[i] ^ Qie[i]` → `derived = SHA512(SHA512(random) || pepper)` → `key = derived[0:16], iv = derived[16:32]`
+
+### ExchangeToken (Token Refresh)
+```json
+{
+  "ClientID": "en1oxy7wnw8j9n",
+  "RefreshToken": "<current>",
+  "DeviceInfo": { "DeviceID": "...", "PlatformCode": "SOLO_PC", ... },
+  "DeviceProof": {
+    "Signature": "<ECDSA P-256 SHA-256 base64>",
+    "Timestamp": "<unix seconds>",
+    "Nonce": "<32 hex chars>"
+  }
+}
+```
+
+Signature payload: `"POST\n/trae/api/v3/oauth/ExchangeToken\n<ClientID>\n<RefreshToken>\n<Timestamp>\n<Nonce>"`
+
+> **3 bugs found**: `x-cloudide-token` must be empty, `DeviceProof` fields must be PascalCase, `DeviceInfo` fingerprint must match enrollment.
+
+### Working APIs (18)
+
+**iCube**: `user`, `notifications/preferences`, `avatar/random`, `report/token`, `showcase/list`, `templates/list`, `templates/favorites`, `templates/scenes`
+
+**UG**: `checkin_credits/status`, `checkin_credits/claim`
+
+**Cloudide**: `GetUserInfo`, `CheckLogin`, `CheckPay`, `GetUserEmailSuffix`, `GetUserSupabaseToken`, `GetUserVercelToken`, `oauth/GetRefreshToken`
+
+**Connector**: `GetFeishuPermissionTree`
 
 ## Project Structure
 
@@ -92,6 +133,17 @@ output/                                 ← Sensitive data (gitignore)
 scripts/                                ← Utility scripts (12)
 tests/                                  ← 18 tests
 ```
+
+## Documentation
+
+| Document | Content |
+|---|---|
+| `docs/FINDINGS.md` | Full algorithm analysis (byteCrypto, ExchangeToken, check-in) |
+| `docs/FLOW.md` | Complete process walkthrough |
+| `docs/phase6-decryption/API-REFERENCE.md` | 89 API endpoints tested with auth details |
+| `docs/phase6-decryption/API-DOMAINS.md` | 14 business domain categories |
+| `docs/phase1~6-*/RUN-LOG.md` | Per-phase execution logs |
+| `docs/README.md` | Masking conventions & folder status |
 
 ## Security Notes
 
