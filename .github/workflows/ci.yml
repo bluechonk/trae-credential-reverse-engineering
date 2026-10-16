@@ -1,0 +1,33 @@
+# CI：类型检查 + 全部测试（vitest run），Node 22/24 双版本矩阵。
+# 推送前须先在本地 WSL 跑通同一命令（见 AGENTS.md 门禁规则）。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: test (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      # CI 上无系统构建链时 better-sqlite3 会尝试源码编译：先装工具链再装依赖
+      - name: 安装构建链
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq build-essential
+      - name: 安装依赖
+        run: npm ci
+      - name: 类型检查
+        run: npx tsc --noEmit
+      - name: 测试
+        run: npx vitest run
