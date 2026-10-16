@@ -115,7 +115,9 @@ src/
 │   ├── flows.ts                      ← checkin/refresh 编排
 │   ├── decryptTraeAuth.ts            ← 批量解密
 │   └── validate.ts                   ← API 验证
-└── utils/entropy.ts|magic.ts
+└── utils/
+    ├── entropy.ts | magic.ts
+    └── paths.ts                      ← 运行时路径动态解析（无硬编码）
 
 docs/                                   ← 全部文档（已脱敏）
 output/                                 ← 敏感数据（gitignore）
@@ -129,6 +131,7 @@ tests/                                  ← 18 个测试
 |---|---|
 | `docs/FINDINGS.md` | 完整算法分析（byteCrypto、ExchangeToken、签到） |
 | `docs/FLOW.md` | 全流程手册 |
+| `docs/PATH-HARDENING.md` | 硬编码路径治理（动态解析改造记录） |
 | `docs/phase6-decryption/API-REFERENCE.md` | **89 个 API 端点测试** 含认证详情 |
 | `docs/phase6-decryption/API-DOMAINS.md` | **14 个业务域分类** |
 | `docs/phase1~6-*/RUN-LOG.md` | 各阶段执行记录 |

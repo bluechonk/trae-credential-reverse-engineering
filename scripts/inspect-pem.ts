@@ -1,7 +1,10 @@
 import { createPrivateKey, createPublicKey } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { projectRoot } from '../src/utils/index.js';
 
-const dc = JSON.parse(readFileSync('D:/Projects/trae-credential-reverse-engineering/output/phase6/decrypted/iCubeAuthInfo_icube_dc_1448485154478571.json', 'utf-8')) as Record<string, string>;
+const dcPath = join(projectRoot(), 'output', 'phase6', 'decrypted', 'iCubeAuthInfo_icube_dc_1448485154478571.json');
+const dc = JSON.parse(readFileSync(dcPath, 'utf-8')) as Record<string, string>;
 
 for (const name of ['privateKeyPEM', 'publicKeyPEM'] as const) {
   const pem = dc[name];

@@ -1,9 +1,14 @@
 // Decrypt TRAE dynamic config cache (Local Storage/config.db)
 import { createHash, createDecipheriv } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { findUserDataPath } from '../src/utils/index.js';
 
-const file = 'C:/Users/Cecilia/AppData/Roaming/TRAE SOLO CN/Local Storage/config.db';
-const nameShort = 'TRAE SOLO CN';
+const file = findUserDataPath('Local Storage', 'config.db');
+if (!file) {
+  console.error('TRAE Local Storage/config.db not found (TRAE SOLO CN / TraeWork CN)');
+  process.exit(1);
+}
+const nameShort = 'TRAE SOLO CN'; // 解密种子：应用名字符串本身参与 MD5 派生，非路径
 
 const raw = readFileSync(file);
 const iv = raw.subarray(0, 16);

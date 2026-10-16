@@ -3,13 +3,19 @@
  * Prints entropy + magic for the handful of files that matter.
  */
 import { readFileSync } from 'node:fs';
-import { shannonEntropy, classifyEntropy, identifyMagic } from '../src/utils/index.js';
+import { shannonEntropy, classifyEntropy, identifyMagic, findUserDataPath, findLeveldbLdb } from '../src/utils/index.js';
 
+// 动态探测三类凭据相关文件；leveldb 文件名滚动故解析出首个 .ldb
 const targets = [
-  'C:/Users/Cecilia/AppData/Roaming/TRAE SOLO CN/User/globalStorage/storage.json',
-  'C:/Users/Cecilia/AppData/Roaming/TRAE SOLO CN/User/globalStorage/state.vscdb',
-  'C:/Users/Cecilia/AppData/Roaming/TRAE SOLO CN/Local Storage/leveldb/000184.ldb',
-];
+  findUserDataPath('User', 'globalStorage', 'storage.json'),
+  findUserDataPath('User', 'globalStorage', 'state.vscdb'),
+  findLeveldbLdb(),
+].filter((p): p is string => p !== null);
+
+if (targets.length === 0) {
+  console.error('No TRAE user-data targets found (TRAE SOLO CN / TraeWork CN)');
+  process.exit(1);
+}
 
 for (const p of targets) {
   try {
@@ -17,7 +23,7 @@ for (const p of targets) {
     const magic = identifyMagic(data.subarray(0, 64));
     const ent = shannonEntropy(data);
     const cls = classifyEntropy(ent);
-    const short = p.split('/').slice(-2).join('/');
+    const short = p.split(/[\\/]/).slice(-2).join('/');
     const sizeKB = (data.length / 1024).toFixed(1);
     console.log(`${short}`);
     console.log(`  size=${sizeKB}KB  magic=${magic?.name ?? '?'}  entropy=${ent.toFixed(2)} (${cls.level})`);

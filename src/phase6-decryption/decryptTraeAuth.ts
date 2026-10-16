@@ -11,16 +11,7 @@ import chalk from 'chalk';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { decryptBlob, initFromMainJs } from './byteCrypto.js';
-
-const MAIN_JS_CANDIDATES = [
-  'C:\\Program Files\\TRAE SOLO CN\\resources\\app\\out\\main.js',
-  'C:\\Program Files (x86)\\TRAE SOLO CN\\resources\\app\\out\\main.js',
-];
-
-const STORAGE_JSON_CANDIDATES = [
-  resolve(process.env.APPDATA ?? '', 'TRAE SOLO CN', 'User', 'globalStorage', 'storage.json'),
-  resolve(process.env.APPDATA ?? '', 'TraeWork CN', 'User', 'globalStorage', 'storage.json'),
-];
+import { findMainJs, findStorageJson } from '../../src/utils/index.js';
 
 /** Mask a secret for terminal display */
 function mask(s: string | undefined, keep = 10): string {
@@ -36,8 +27,8 @@ export interface AuthDecryptSummary {
 }
 
 export async function decryptTraeAuth(): Promise<AuthDecryptSummary | null> {
-  const mainJs = MAIN_JS_CANDIDATES.find((p) => existsSync(p));
-  const storageJson = STORAGE_JSON_CANDIDATES.find((p) => existsSync(p));
+  const mainJs = findMainJs();
+  const storageJson = findStorageJson();
 
   if (!mainJs) {
     console.log(chalk.red('  ✗ TRAE out/main.js not found — cannot extract crypto tables.'));

@@ -11,6 +11,7 @@
 import chalk from 'chalk';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { findStorageJson } from '../../src/utils/index.js';
 
 interface DecryptedAuth {
   token?: string;
@@ -64,8 +65,8 @@ export async function validateToken(): Promise<void> {
   //   POST {iCubeApi}/icube/api/v1/user
   //   headers: Content-Type json, x-icube-token
   //   body: common params + uid/userRegion/organization/scope
-  const storageJsonPath = resolve(process.env.APPDATA ?? '', 'TRAE SOLO CN', 'User', 'globalStorage', 'storage.json');
-  const machineId = existsSync(storageJsonPath)
+  const storageJsonPath = findStorageJson();
+  const machineId = storageJsonPath
     ? ((JSON.parse(readFileSync(storageJsonPath, 'utf-8')) as Record<string, string>)['telemetry.machineId'] ?? '')
     : '';
 

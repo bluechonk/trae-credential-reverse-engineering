@@ -3,13 +3,22 @@
  * Run AFTER a successful refresh, while TRAE is closed.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { encryptBlob, initFromMainJs } from '../src/phase6-decryption/byteCrypto.js';
+import { findStorageJson, findMainJs } from '../src/utils/index.js';
 
-const STORAGE = resolve(process.env.APPDATA ?? '', 'TRAE SOLO CN', 'User', 'globalStorage', 'storage.json');
+const STORAGE = findStorageJson();
+if (!STORAGE) {
+  console.error('TRAE storage.json not found (TRAE SOLO CN / TraeWork CN)');
+  process.exit(1);
+}
 const KEY = 'iCubeAuthInfo://icube.cloudide';
 
-await initFromMainJs('C:/Program Files/TRAE SOLO CN/resources/app/out/main.js');
+const mainJs = findMainJs();
+if (!mainJs) {
+  console.error('TRAE resources/app/out/main.js not found');
+  process.exit(1);
+}
+await initFromMainJs(mainJs);
 
 const creds = JSON.parse(readFileSync('output/phase6/decrypted/iCubeAuthInfo_icube_cloudide.json', 'utf-8'));
 

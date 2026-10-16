@@ -5,10 +5,16 @@
 import { createSign, randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { buildExchangeRequest } from '../src/phase6-decryption/traeClient.js';
+import { findStorageJson } from '../src/utils/index.js';
 
 const creds = JSON.parse(readFileSync('output/phase6/decrypted/iCubeAuthInfo_icube_cloudide.json', 'utf-8'));
 const dc = JSON.parse(readFileSync('output/phase6/decrypted/iCubeAuthInfo_icube_dc_1448485154478571.json', 'utf-8'));
-const machineId = JSON.parse(readFileSync(process.env.APPDATA + '/TRAE SOLO CN/User/globalStorage/storage.json', 'utf-8'))['telemetry.machineId'];
+const storageJson = findStorageJson();
+if (!storageJson) {
+  console.error('TRAE storage.json not found (TRAE SOLO CN / TraeWork CN)');
+  process.exit(1);
+}
+const machineId = (JSON.parse(readFileSync(storageJson, 'utf-8')) as Record<string, string>)['telemetry.machineId'];
 
 // known-good inline request
 const clientId = 'en1oxy7wnw8j9n';

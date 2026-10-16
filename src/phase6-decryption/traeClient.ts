@@ -17,6 +17,7 @@ import { release as osRelease } from 'node:os';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import chalk from 'chalk';
+import { findStorageJson } from '../../src/utils/index.js';
 
 const UG_HOST = 'https://api.trae.cn';           // product.json bootConfig.ug.trae.normal
 const EXCHANGE_PATH = '/trae/api/v3/oauth/ExchangeToken';
@@ -28,7 +29,7 @@ const APP_VERSION = '1.107.1';
 const DECRYPTED_DIR = resolve(process.cwd(), 'output', 'phase6', 'decrypted');
 const CRED_FILE = resolve(DECRYPTED_DIR, 'iCubeAuthInfo_icube_cloudide.json');
 const DEVICE_FILE = resolve(DECRYPTED_DIR, 'iCubeAuthInfo_icube_dc_1448485154478571.json');
-const STORAGE_JSON = resolve(process.env.APPDATA ?? '', 'TRAE SOLO CN', 'User', 'globalStorage', 'storage.json');
+const STORAGE_JSON = findStorageJson();
 
 interface CloudideCreds {
   token: string;
@@ -55,7 +56,7 @@ function loadDeviceKeyPair(): DeviceKeyPair {
 }
 
 function machineId(): string {
-  if (existsSync(STORAGE_JSON)) {
+  if (STORAGE_JSON && existsSync(STORAGE_JSON)) {
     const s = JSON.parse(readFileSync(STORAGE_JSON, 'utf-8')) as Record<string, string>;
     return s['telemetry.machineId'] ?? '';
   }

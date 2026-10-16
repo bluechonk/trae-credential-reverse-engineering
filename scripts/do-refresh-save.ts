@@ -1,5 +1,13 @@
 import { createSign, randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { findStorageJson } from '../src/utils/index.js';
+
+const storageJson = findStorageJson();
+if (!storageJson) {
+  console.error('TRAE storage.json not found (TRAE SOLO CN / TraeWork CN)');
+  process.exit(1);
+}
+const machineId = (JSON.parse(readFileSync(storageJson, 'utf-8')) as Record<string, string>)['telemetry.machineId'];
 
 const credsPath = 'output/phase6/decrypted/iCubeAuthInfo_icube_cloudide.json';
 const dcPath = 'output/phase6/decrypted/iCubeAuthInfo_icube_dc_1448485154478571.json';
@@ -19,7 +27,7 @@ const body = {
   RefreshToken: creds.refreshToken,
   DeviceInfo: {
     DeviceID: '1448485154478571',
-    MachineID: JSON.parse(readFileSync(process.env.APPDATA + '/TRAE SOLO CN/User/globalStorage/storage.json', 'utf-8'))['telemetry.machineId'],
+    MachineID: machineId,
     PlatformCode: 'SOLO_PC',
     DeviceType: 'PC',
     DeviceName: process.env.USERNAME,

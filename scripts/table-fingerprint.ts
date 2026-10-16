@@ -4,8 +4,14 @@
  */
 import { createHash } from 'node:crypto';
 import { extractTablesFromMainJs } from '../src/phase6-decryption/byteCrypto.js';
+import { findMainJs } from '../src/utils/index.js';
 
-const tables = extractTablesFromMainJs('C:/Program Files/TRAE SOLO CN/resources/app/out/main.js');
+const mainJs = findMainJs();
+if (!mainJs) {
+  console.error('TRAE resources/app/out/main.js not found');
+  process.exit(1);
+}
+const tables = extractTablesFromMainJs(mainJs);
 
 function fp(name: string, t: Uint8Array): void {
   const hex = Array.from(t.slice(0, 6)).map((b) => b.toString(16).padStart(2, '0')).join(' ');

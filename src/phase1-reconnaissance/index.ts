@@ -14,14 +14,16 @@ import ora from 'ora';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { execSync } from 'node:child_process';
+import { programFiles, programFilesX86 } from '../utils/index.js';
 
 /**
  * Known TRAE SOLO CN (aka TraeWork CN) installation paths.
  * The app is officially named "TRAE SOLO CN" but also referred to as "TraeWork CN".
+ * 系统级安装根由环境变量（ProgramFiles/ProgramFiles(x86)）动态解析，避免写死盘符。
  */
 const SEARCH_PATHS = [
-  resolve('C:\\', 'Program Files', 'TRAE SOLO CN'),
-  resolve('C:\\', 'Program Files (x86)', 'TRAE SOLO CN'),
+  resolve(programFiles(), 'TRAE SOLO CN'),
+  resolve(programFilesX86(), 'TRAE SOLO CN'),
   resolve(process.env.LOCALAPPDATA ?? '', 'Programs', 'TRAE SOLO CN'),
   resolve(process.env.LOCALAPPDATA ?? '', 'Programs', 'trae-solo-cn'),
   resolve(process.env.APPDATA ?? '', 'TraeWork CN'),

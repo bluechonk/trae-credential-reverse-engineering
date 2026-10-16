@@ -16,8 +16,9 @@ import {
   checkinClaim,
 } from './traeClient.js';
 import { encryptBlob, initFromMainJs } from './byteCrypto.js';
+import { findMainJs, findStorageJson } from '../../src/utils/index.js';
 
-const STORAGE_JSON = resolve(process.env.APPDATA ?? '', 'TRAE SOLO CN', 'User', 'globalStorage', 'storage.json');
+const STORAGE_JSON = findStorageJson();
 const AUTH_KEY = 'iCubeAuthInfo://icube.cloudide';
 
 function printJson(label: string, data: unknown): void {
@@ -101,7 +102,7 @@ export async function runRefresh(): Promise<void> {
   saveRotatedCreds(r);
 
   // Write back to TRAE storage.json (re-encrypted with byteCrypto envelope) so the app stays logged in
-  if (!existsSync(STORAGE_JSON)) {
+  if (!STORAGE_JSON || !existsSync(STORAGE_JSON)) {
     console.log(chalk.yellow('  ⚠ storage.json not found — skipped writing back.'));
     return;
   }
@@ -114,7 +115,12 @@ export async function runRefresh(): Promise<void> {
 
   const store = JSON.parse(readFileSync(STORAGE_JSON, 'utf-8')) as Record<string, string>;
   if (typeof store[AUTH_KEY] === 'string') {
-    await initFromMainJs('C:/Program Files/TRAE SOLO CN/resources/app/out/main.js');
+    const mainJs = findMainJs();
+    if (!mainJs) {
+      console.log(chalk.yellow('  ⚠ TRAE out/main.js not found — cannot re-encrypt.'));
+      return;
+    }
+    await initFromMainJs(mainJs);
     const plain = JSON.stringify(loadCreds());
     store[AUTH_KEY] = await encryptBlob(plain);
     if (!traeRunning) {

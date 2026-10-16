@@ -1,8 +1,14 @@
 import { readFileSync } from 'node:fs';
+import { findStorageJson } from '../src/utils/index.js';
 
 // Load credentials
 const creds = JSON.parse(readFileSync('output/phase6/decrypted/iCubeAuthInfo_icube_cloudide.json', 'utf-8'));
-const storage = JSON.parse(readFileSync(process.env.APPDATA + '/TRAE SOLO CN/User/globalStorage/storage.json', 'utf-8'));
+const storageJson = findStorageJson();
+if (!storageJson) {
+  console.error('TRAE storage.json not found (TRAE SOLO CN / TraeWork CN)');
+  process.exit(1);
+}
+const storage = JSON.parse(readFileSync(storageJson, 'utf-8'));
 
 const TOKEN = creds.token;
 const USERID = creds.userId;

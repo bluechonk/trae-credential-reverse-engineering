@@ -16,6 +16,7 @@ import ora from 'ora';
 import { existsSync, writeFileSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { resolve, join, relative } from 'node:path';
 import { createRequire } from 'node:module';
+import { installRoots, TRAE_APP_DIR_NAMES } from '../utils/index.js';
 
 interface CryptoIndicator {
   pattern: string;
@@ -107,26 +108,18 @@ export async function phase4(): Promise<void> {
  * Returns { type: 'asar', path } or { type: 'dir', path } or null.
  */
 function findAppSource(): { type: 'asar' | 'dir'; path: string } | null {
-  // Search for ASAR archives
-  const asarPaths = [
-    resolve('C:\\', 'Program Files', 'TRAE SOLO CN', 'resources', 'app.asar'),
-    resolve('C:\\', 'Program Files (x86)', 'TRAE SOLO CN', 'resources', 'app.asar'),
-    resolve(process.env.LOCALAPPDATA ?? '', 'Programs', 'TRAE SOLO CN', 'resources', 'app.asar'),
-    resolve('C:\\', 'Program Files', 'TraeWork CN', 'resources', 'app.asar'),
-    resolve('C:\\', 'Program Files (x86)', 'TraeWork CN', 'resources', 'app.asar'),
-  ];
+  // 动态构建候选：安装根（用户级/系统级，环境变量解析）× 两种应用名
+  const asarPaths = installRoots().flatMap((root) =>
+    TRAE_APP_DIR_NAMES.map((name) => join(root, name, 'resources', 'app.asar')),
+  );
   for (const path of asarPaths) {
     if (existsSync(path)) return { type: 'asar', path };
   }
 
   // Search for unpacked app directories
-  const dirPaths = [
-    resolve('C:\\', 'Program Files', 'TRAE SOLO CN', 'resources', 'app'),
-    resolve('C:\\', 'Program Files (x86)', 'TRAE SOLO CN', 'resources', 'app'),
-    resolve(process.env.LOCALAPPDATA ?? '', 'Programs', 'TRAE SOLO CN', 'resources', 'app'),
-    resolve('C:\\', 'Program Files', 'TraeWork CN', 'resources', 'app'),
-    resolve('C:\\', 'Program Files (x86)', 'TraeWork CN', 'resources', 'app'),
-  ];
+  const dirPaths = installRoots().flatMap((root) =>
+    TRAE_APP_DIR_NAMES.map((name) => join(root, name, 'resources', 'app')),
+  );
   for (const path of dirPaths) {
     if (existsSync(path)) {
       const stats = statSync(path);
