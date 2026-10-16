@@ -112,10 +112,11 @@ export async function phase6(): Promise<void> {
           : Buffer.alloc(0);
 
         try {
+          // iv 已在上方按 ivLen 处理：ECB 等无 IV 模式为空 Buffer（BinaryLike 合法值）
           const decipher = createDecipheriv(
             config.algorithm,
             keyBuffer,
-            config.ivLen > 0 ? iv : undefined
+            iv
           );
           let decrypted = decipher.update(encryptedData.subarray(config.ivLen));
           decrypted = Buffer.concat([decrypted, decipher.final()]);

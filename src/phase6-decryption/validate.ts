@@ -20,6 +20,7 @@ interface DecryptedAuth {
   host?: string;
   expiredAt?: string;
   account?: Record<string, unknown>;
+  userRegion?: Record<string, unknown>;
 }
 
 function loadDecrypted(): DecryptedAuth {

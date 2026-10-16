@@ -15,7 +15,6 @@ import ora from 'ora';
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { readdir, stat } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import { shannonEntropy, classifyEntropy, identifyMagic, hexDump } from '../utils/index.js';
 
 interface FileAnalysis {

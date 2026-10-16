@@ -46,11 +46,15 @@
 4. 冒烟测试：paths 全函数本机输出正确（storage.json/leveldb 命中本机真实安装，main.js 未安装时诚实返回 null）
 5. 端到端：`scripts/focused-scan.ts` 与 `scripts/read-device-id.ts` 在本机成功读出真实数据（原版在这台机器上必然失败）
 
-## 遗留（超出本次范围，待决策）
+## 遗留修复记录（2026-10-16 追加）
 
-以下 tsc 错误在基线 HEAD 已存在，与本次改动无关：
+基线 HEAD 固有的 11 条 tsc 类型错误已全部修复，仓库达到零错误可编译状态：
 
-- `phase3-format-analysis/index.ts` 两处重复的 `resolve` 标识符
-- `byteCrypto.ts` 7 处 `BufferSource` 未定义（tsconfig lib 不含 DOM）
-- `phase6-decryption/index.ts` `createDecipheriv` 重载不匹配
-- `validate.ts` `userRegion` 不在 `DecryptedAuth` 接口上
+| 问题 | 修复 |
+|---|---|
+| `phase3-format-analysis` 重复的 `resolve` import（2 条） | 删除 18 行重复的 `import { resolve } from 'node:path'`，保留含 `join` 的那条 |
+| `byteCrypto.ts` 7 处 `BufferSource` 未定义 | 模块顶部补 `type BufferSource = ArrayBufferView \| ArrayBuffer`（WebCrypto 参数类型；tsconfig lib 不含 DOM，不引入 "DOM" 以避免污染全局类型） |
+| `phase6-decryption/index.ts` `createDecipheriv` 重载不匹配 | 第三参改为直接传 `iv`（上方已按 `ivLen` 计算，无 IV 算法为空 `Buffer.alloc(0)`，合法 `BinaryLike`）；原先传 `undefined` 不在 `BinaryLike \| null` 联合内 |
+| `validate.ts` `userRegion` 不在 `DecryptedAuth` 接口 | 接口补 `userRegion?: Record<string, unknown>` |
+
+验证：`npx tsc --noEmit` 零错误（exit 0）；`npm run build` 产出完整 dist（含 .d.ts）；vitest 18/18 通过。

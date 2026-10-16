@@ -26,6 +26,9 @@
 import { webcrypto } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
+/** WebCrypto 二进制源类型；tsconfig lib 未含 DOM，此处补 Node 侧等价别名 */
+type BufferSource = ArrayBufferView | ArrayBuffer;
+
 const RH = 64; // SHA-512 digest length
 const RANDOM_LEN = 32;
 const KEY_LEN = 16;
