@@ -66,7 +66,7 @@ export async function phase2(): Promise<void> {
   spinner.succeed('Exported ' + chalk.cyan(String(beforeEntries.length)) + ' files to before.csv');
 
   // Step 2: Wait for user to log in
-  console.log(chalk.yellow('\n  -> Please log in to TraeWork CN now.'));
+  console.log(chalk.yellow('\n  -> Please log in to Trae CN now.'));
   await waitForInput(chalk.gray('  Press Enter after login is complete...'));
 
   // Step 3: After login snapshot
@@ -196,11 +196,15 @@ function prioritizeTargets(entries: FileEntry[]): Array<{
 }
 
 function findDataDirectory(): string | null {
+  // 2026-10：优先由 storage.json 反推当前安装（Trae CN）的数据目录根，
+  // 候选列表保留旧安装名以兼容历史数据（TRAE SOLO CN / TraeWork CN）。
   const candidates = [
-    resolve(process.env.APPDATA ?? '', 'TraeWork CN'),
+    resolve(process.env.APPDATA ?? '', 'Trae CN'),
     resolve(process.env.APPDATA ?? '', 'TRAE SOLO CN'),
-    resolve(process.env.LOCALAPPDATA ?? '', 'TraeWork CN'),
+    resolve(process.env.APPDATA ?? '', 'TraeWork CN'),
+    resolve(process.env.LOCALAPPDATA ?? '', 'Trae CN'),
     resolve(process.env.LOCALAPPDATA ?? '', 'TRAE SOLO CN'),
+    resolve(process.env.LOCALAPPDATA ?? '', 'TraeWork CN'),
   ];
   for (const dir of candidates) {
     if (existsSync(dir) && statSync(dir).isDirectory()) {

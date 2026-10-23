@@ -15,6 +15,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { resolve, join, relative } from 'node:path';
+import { findAppSource } from '../phase4-encryption-id/index.js';
 
 interface KeyCandidate {
   strategy: string;
@@ -49,10 +50,18 @@ const IV_PATTERNS = [
 export async function phase5(): Promise<void> {
   console.log(chalk.gray('Extracting encryption keys...\n'));
 
-  const extractedDir = resolve(process.cwd(), 'output', 'phase4', 'extracted');
-  if (!existsSync(extractedDir)) {
-    console.log(chalk.red('✗ Extracted source not found. Run phase4 first.'));
-    return;
+  // 扫描源：优先 phase4 的 asar 提取产物；app 为解包目录时（phase4 不复制）直接扫安装源目录。
+  // 2026-10 修复：Trae CN 为解包目录发布，原实现只认 output/phase4/extracted 导致 phase4→5 断链。
+  let scanDir = resolve(process.cwd(), 'output', 'phase4', 'extracted');
+  if (!existsSync(scanDir)) {
+    const source = findAppSource();
+    if (source?.type === 'dir') {
+      scanDir = source.path;
+      console.log(chalk.gray(`  No asar extraction found; scanning unpacked app source: ${scanDir}\n`));
+    } else {
+      console.log(chalk.red('✗ Extracted source not found. Run phase4 first.'));
+      return;
+    }
   }
 
   const candidates: KeyCandidate[] = [];
@@ -60,14 +69,14 @@ export async function phase5(): Promise<void> {
   // Strategy 1: Hardcoded keys
   console.log(chalk.white('Strategy 1: Searching for hardcoded keys...'));
   const spinner = ora('Scanning decompiled source...').start();
-  const hardcodedCandidates = searchHardcodedKeys(extractedDir);
+  const hardcodedCandidates = searchHardcodedKeys(scanDir);
   candidates.push(...hardcodedCandidates);
   spinner.succeed(`Found ${chalk.cyan(String(hardcodedCandidates.length))} hardcoded key candidates`);
 
   // Strategy 2: Derived keys
   console.log(chalk.white('\nStrategy 2: Analyzing key derivation...'));
   spinner.start('Searching for derivation functions...');
-  const derivedCandidates = analyzeKeyDerivation(extractedDir);
+  const derivedCandidates = analyzeKeyDerivation(scanDir);
   candidates.push(...derivedCandidates);
   spinner.succeed(`Found ${chalk.cyan(String(derivedCandidates.length))} derivation candidates`);
 

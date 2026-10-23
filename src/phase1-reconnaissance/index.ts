@@ -17,11 +17,14 @@ import { execSync } from 'node:child_process';
 import { programFiles, programFilesX86 } from '../utils/index.js';
 
 /**
- * Known TRAE SOLO CN (aka TraeWork CN) installation paths.
- * The app is officially named "TRAE SOLO CN" but also referred to as "TraeWork CN".
+ * Known TRAE installation paths. 2026-10 起桌面客户端名为 "Trae CN"
+ * （用户级安装 %LOCALAPPDATA%\Programs\Trae CN）；旧名保留在列表尾部以兼容历史安装。
  * 系统级安装根由环境变量（ProgramFiles/ProgramFiles(x86)）动态解析，避免写死盘符。
  */
 const SEARCH_PATHS = [
+  resolve(process.env.LOCALAPPDATA ?? '', 'Programs', 'Trae CN'),
+  resolve(programFiles(), 'Trae CN'),
+  resolve(programFilesX86(), 'Trae CN'),
   resolve(programFiles(), 'TRAE SOLO CN'),
   resolve(programFilesX86(), 'TRAE SOLO CN'),
   resolve(process.env.LOCALAPPDATA ?? '', 'Programs', 'TRAE SOLO CN'),
@@ -35,10 +38,10 @@ const SEARCH_PATHS = [
 ];
 
 /** Possible executable names */
-const EXE_NAMES = ['TRAE SOLO CN.exe', 'TraeWork.exe', 'TraeSOLO.exe', 'trae-solo-cn.exe'];
+const EXE_NAMES = ['Trae CN.exe', 'TRAE SOLO CN.exe', 'TraeWork.exe', 'TraeSOLO.exe', 'trae-solo-cn.exe'];
 
 /** Data directory names (in %APPDATA% / %LOCALAPPDATA%) */
-const DATA_DIR_NAMES = ['TraeWork CN', 'TRAE SOLO CN', 'trae-solo-cn', 'trae-work-cn'];
+const DATA_DIR_NAMES = ['Trae CN', 'TraeWork CN', 'TRAE SOLO CN', 'trae-solo-cn', 'trae-work-cn'];
 
 /** Framework detection signatures */
 const FRAMEWORK_SIGNATURES = {

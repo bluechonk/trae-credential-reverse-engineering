@@ -160,9 +160,12 @@ function truncatePath(path: string, maxLen: number): string {
 }
 
 function findDataDirectory(): string | null {
+  // 2026-10：Trae CN 为当前安装（优先），旧安装名保留兼容
   const candidates = [
+    resolve(process.env.APPDATA ?? '', 'Trae CN'),
     resolve(process.env.APPDATA ?? '', 'TRAE SOLO CN'),
     resolve(process.env.APPDATA ?? '', 'TraeWork CN'),
+    resolve(process.env.LOCALAPPDATA ?? '', 'Trae CN'),
     resolve(process.env.LOCALAPPDATA ?? '', 'TRAE SOLO CN'),
     resolve(process.env.LOCALAPPDATA ?? '', 'TraeWork CN'),
   ];

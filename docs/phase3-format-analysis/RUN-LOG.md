@@ -45,3 +45,10 @@ Local Storage/leveldb/000184.ldb
 **关键结论**：加密值的熵分布直接提示了「自定义信封 + base64」而非 DPAPI 裸 blob
 （DPAPI 头 `01 00 00 00 D0 8C 9D DF` 的 base64 应以 `AQAAAADYjQ…` 开头，实际以
 `dGMFEAAA` 开头 → 自定义魔数 `"tc"`）。此判断被阶段四源码分析证实。
+
+---
+
+## 2026-10-24 复现记录（Trae CN 1.107.1）
+
+- 修复：findDataDirectory 候选缺 `Trae CN`（原扫到旧残留目录 TRAE SOLO CN 的 4846 文件）
+- 修复后：扫描 `%APPDATA%\Trae CN` 共 1186 文件，analysis.json 生成；高熵文件（≈8.00 bits/byte）多为 Cache/Code Cache/IndexedDB 二进制

@@ -34,3 +34,11 @@ storage.json 中所有 `iCubeAuthInfo://*` 值 base64 解码后前 6 字节：
 与 byteCrypto 模块常量完全吻合：`NP=116('t'), OP=99('c'), $P=5, RP=16, MP=0, LP=0`
 
 完整结果：`output/phase4/indicators.json`（6011 条）
+
+---
+
+## 2026-10-24 复现记录（Trae CN 1.107.1）
+
+- 通过：findAppSource（installRoots × TRAE_APP_DIR_NAMES，Trae CN 优先生效）定位 `%LOCALAPPDATA%\Programs\Trae CN\resources\app`
+- 指标 10152 个（2026-08 为 6011，新版 bundle 扩大）；`out\main.js:2578` 仍命中 aes-256-cbc/createCipheriv 族
+- findAppSource 改为导出（phase5 复用）

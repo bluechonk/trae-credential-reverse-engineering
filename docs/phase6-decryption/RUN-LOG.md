@@ -188,3 +188,5 @@ RefreshToken, Token, TokenExpireAt, TokenExpireDuration, UserJwt`
 - token 活性：`POST api.trae.com.cn/cloudide/api/v3/trae/GetUserInfo` → 200（x-cloudide-token）
 - 模型请求：`GET trae-api-cn.mchost.guru/api/remote/v1/models` → 200（45 模型）；`POST /api/ide/v1/batch_get_detail_param` → 200（22 通道）
 - 证据：`output/phase6/models.json`；详见 `docs/FLOW.md` §九
+
+- 全链回归：phase1-5 全部复现通过后，phase6 解密 4/4；validate → HTTP 200 credential LIVE（token 至 2026-11-06 有效，13.4 天）

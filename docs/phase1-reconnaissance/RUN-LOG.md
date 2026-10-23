@@ -37,3 +37,10 @@ C:\Program Files\TRAE SOLO CN\resources\
 │   └── node_modules\ (@byted-icube/*)
 └── app-update.yml
 ```
+
+---
+
+## 2026-10-24 复现记录（Trae CN 1.107.1）
+
+- 修复：SEARCH_PATHS/EXE_NAMES/DATA_DIR_NAMES 均缺 `Trae CN`（新安装名），导致找到的是旧残留数据目录且 Framework/Version 误报为 Unknown
+- 修复后：Install=`%LOCALAPPDATA%\Programs\Trae CN`，Framework=Electron，Version=1.107.1，数据目录命中 Trae CN + TRAE SOLO CN 两组（10 个存在）

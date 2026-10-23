@@ -37,3 +37,10 @@ C:\Users\Cecilia\AppData\Roaming\TRAE SOLO CN\
 - 凭证全部集中在 `storage.json` 的 `iCubeAuthInfo://` 命名空间下，键名即语义
 - 设备密钥键名 **内嵌 deviceId**：`icube-dc:1448****8571`（该 ID 后续被确认为服务器端设备绑定 ID）
 - 未发现 DPAPI / safeStorage 特征 → 进入阶段三做熵学确认
+
+---
+
+## 2026-10-24 复现记录（Trae CN 1.107.1）
+
+- 修复：findDataDirectory 候选缺 `Trae CN`（现优先后保留旧名兼容）；提示文案 TraeWork CN → Trae CN
+- 非交互（管道 stdin EOF）下登录等待自动跳过：before.csv 1186 文件（Trae CN 数据目录），after.csv 生成；交互式登录 diff 流程需人工执行

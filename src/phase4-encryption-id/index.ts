@@ -107,8 +107,8 @@ export async function phase4(): Promise<void> {
  * Find the Electron app source — either as an ASAR archive or unpacked directory.
  * Returns { type: 'asar', path } or { type: 'dir', path } or null.
  */
-function findAppSource(): { type: 'asar' | 'dir'; path: string } | null {
-  // 动态构建候选：安装根（用户级/系统级，环境变量解析）× 两种应用名
+export function findAppSource(): { type: 'asar' | 'dir'; path: string } | null {
+  // 动态构建候选：安装根（用户级/系统级，环境变量解析）× 应用名（Trae CN / TRAE SOLO CN / TraeWork CN）
   const asarPaths = installRoots().flatMap((root) =>
     TRAE_APP_DIR_NAMES.map((name) => join(root, name, 'resources', 'app.asar')),
   );

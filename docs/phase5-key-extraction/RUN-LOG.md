@@ -40,3 +40,10 @@ pepper(PRIV) = Hie ^ Wie : len=64  head=[49 0c c2 12 92 b0 …]  sha256=1cc81612
 - 表提取采用运行时正则 + 锚点定位（`extractTablesFromMainJs`），不手工转录 ✓
 - 解密 4/4 凭证成功（见阶段六）反证表与派生逻辑正确 ✓
 - 设备密钥对一致性：私钥推导公钥 == 存储公钥（指纹一致）✓
+
+---
+
+## 2026-10-24 复现记录（Trae CN 1.107.1）
+
+- 修复断链：phase5 只认 `output/phase4/extracted`，而新版 app 为解包目录（phase4 不产生该目录）→ 改为回退扫描 findAppSource() 的解包源目录（findAppSource 已导出）
+- 修复后：121 个 key 候选（hardcoded + derived），key-candidates.json 生成；phase6 实际解密走 byteCrypto 信封（不依赖这些候选）
