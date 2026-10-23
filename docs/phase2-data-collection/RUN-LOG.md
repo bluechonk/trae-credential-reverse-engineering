@@ -44,3 +44,4 @@ C:\Users\Cecilia\AppData\Roaming\TRAE SOLO CN\
 
 - 修复：findDataDirectory 候选缺 `Trae CN`（现优先后保留旧名兼容）；提示文案 TraeWork CN → Trae CN
 - 非交互（管道 stdin EOF）下登录等待自动跳过：before.csv 1186 文件（Trae CN 数据目录），after.csv 生成；交互式登录 diff 流程需人工执行
+- 新逻辑：登录态检测——storage.json 已含 `iCubeAuthInfo://icube.cloudide` 时跳过人工等待（本机复现：前后快照一致 0 diff，符合已登录态预期）；未登录才进入交互等待

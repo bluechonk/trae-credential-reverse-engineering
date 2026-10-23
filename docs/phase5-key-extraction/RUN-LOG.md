@@ -47,3 +47,4 @@ pepper(PRIV) = Hie ^ Wie : len=64  head=[49 0c c2 12 92 b0 …]  sha256=1cc81612
 
 - 修复断链：phase5 只认 `output/phase4/extracted`，而新版 app 为解包目录（phase4 不产生该目录）→ 改为回退扫描 findAppSource() 的解包源目录（findAppSource 已导出）
 - 修复后：121 个 key 候选（hardcoded + derived），key-candidates.json 生成；phase6 实际解密走 byteCrypto 信封（不依赖这些候选）
+- 新逻辑（Strategy 0，首选）：不再依赖噪音启发式——直接提取 main.js byteCrypto 密钥材料并以 storage.json 真实密文验证（SHA-512 tag 通过 → `bytecrypto-verified` 候选，mode=AES）；legacy hardcoded/derived 策略降级为对照（63+58 项噪音，已标注）

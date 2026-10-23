@@ -147,6 +147,33 @@ export async function validateToken(): Promise<void> {
   // Save evidence
   const outDir = resolve(process.cwd(), 'output', 'phase6');
   mkdirSync(outDir, { recursive: true });
+
+  // 2026-10 新增：新 OAuth 域对照验证（GetUserInfo，x-cloudide-token）。
+  // 克制原则：validate 全程仅 2 次轻请求。
+  console.log(chalk.white('\n  Cross-check via new OAuth domain (GetUserInfo) …'));
+  try {
+    const r2 = await fetch('https://api.trae.com.cn/cloudide/api/v3/trae/GetUserInfo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-cloudide-token': token },
+      body: JSON.stringify({ ReqSource: 'IDE', IDEVersion: '0.1.52' }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const j2 = await r2.json().catch(() => null) as any;
+    const result = j2?.Result ?? j2?.result ?? {};
+    const cross = { http: r2.status, nickname: result?.ScreenName, userId: result?.UserID };
+    if (r2.ok) {
+      console.log(chalk.green(`  ✓ GetUserInfo HTTP 200 — nickname=${cross.nickname ?? '?'} uid=${cross.userId ?? '?'} (OAuth host api.trae.com.cn verified)`));
+    } else {
+      console.log(chalk.yellow(`  ⚠ GetUserInfo HTTP ${r2.status} — ${JSON.stringify(j2)?.slice(0, 150)}`));
+    }
+    writeFileSync(
+      resolve(outDir, 'validation-cross-oauth.json'),
+      JSON.stringify({ url: 'https://api.trae.com.cn/cloudide/api/v3/trae/GetUserInfo', at: new Date().toISOString(), ...cross }, null, 2),
+    );
+  } catch (err) {
+    console.log(chalk.yellow('  ⚠ cross-check network error: ' + (err as Error).message));
+  }
+
   writeFileSync(
     resolve(outDir, 'validation.json'),
     JSON.stringify({ url: url.toString(), ...summary, rawPreview: bodyText.slice(0, 2000) }, null, 2),

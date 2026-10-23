@@ -94,6 +94,32 @@ export async function phase4(): Promise<void> {
       JSON.stringify(indicators, null, 2)
     );
     console.log(chalk.gray(`\n  Results saved to: ${resolve(outputDir, 'indicators.json')}`));
+
+    // 2026-10 新增：定位 byteCrypto 模块（iCubeAuthInfo 信封的加密实现所在），
+    // 给 phase5/6 提供锚点与密钥表偏移——全局指标扫描本身对定位无直接帮助。
+    if (appSource.type === 'dir') {
+      const mainJs = join(appSource.path, 'out', 'main.js');
+      if (existsSync(mainJs)) {
+        spinner.start('Locating byteCrypto module in main.js...');
+        const { extractTablesFromMainJs } = await import('../phase6-decryption/byteCrypto.js');
+        const tables = extractTablesFromMainJs(mainJs);
+        const srcText = readFileSync(mainJs, 'utf-8');
+        const fp = (t: Uint8Array) => Array.from(t.slice(0, 6)).map((b) => b.toString(16).padStart(2, '0')).join('');
+        const anchor = srcText.indexOf('components/userStorage.js"(){"use strict"') >= 0 ? 'userStorage.js module path' : 'Em=async (legacy)';
+        const locator = {
+          mainJs,
+          anchor,
+          tablesOffsetHint: 'see anchor context; tables are the last four 64-element Uint8Array literals before the anchor',
+          tableFingerprints: {
+            hie: fp(tables.hie), wie: fp(tables.wie), vie: fp(tables.vie), qie: fp(tables.qie),
+          },
+          note: 'Table order verified by phase6 live-ciphertext decryption (SHA-512 tag).',
+        };
+        writeFileSync(resolve(outputDir, 'bytecrypto-locator.json'), JSON.stringify(locator, null, 2));
+        spinner.succeed(`byteCrypto module located (anchor=${anchor}, tables fingerprinted)`);
+        console.log(chalk.gray(`  Saved to: ${resolve(outputDir, 'bytecrypto-locator.json')}`));
+      }
+    }
   }
 
   // Step 2: Frida dynamic analysis prompt

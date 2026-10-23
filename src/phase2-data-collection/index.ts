@@ -13,10 +13,11 @@
 
 import chalk from 'chalk';
 import ora from 'ora';
-import { existsSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { readdir, stat } from 'node:fs/promises';
+import { findStorageJson } from '../utils/index.js';
 
 interface FileEntry {
   fullPath: string;
@@ -66,8 +67,18 @@ export async function phase2(): Promise<void> {
   spinner.succeed('Exported ' + chalk.cyan(String(beforeEntries.length)) + ' files to before.csv');
 
   // Step 2: Wait for user to log in
-  console.log(chalk.yellow('\n  -> Please log in to Trae CN now.'));
-  await waitForInput(chalk.gray('  Press Enter after login is complete...'));
+  // 2026-10：检测登录态——storage.json 已有 iCubeAuthInfo://icube.cloudide 时无需再走登录 diff，
+  // 直接跳过交互等待（当前环境常为已登录态，旧逻辑会卡在人工等待）。
+  const storageJson = findStorageJson();
+  const alreadyLoggedIn = !!storageJson && existsSync(storageJson) &&
+    Object.keys(JSON.parse(readFileSync(storageJson, 'utf-8'))).some((k) => k.startsWith('iCubeAuthInfo://icube.cloudide'));
+  if (alreadyLoggedIn) {
+    console.log(chalk.gray('\n  Login state detected (iCubeAuthInfo://icube.cloudide present) — skipping interactive login wait.'));
+    console.log(chalk.gray('  To reproduce the login diff, sign out in Trae first, then re-run phase2.'));
+  } else {
+    console.log(chalk.yellow('\n  -> Please log in to Trae CN now.'));
+    await waitForInput(chalk.gray('  Press Enter after login is complete...'));
+  }
 
   // Step 3: After login snapshot
   console.log(chalk.white('\nStep 2: Export directory listing (after login)'));

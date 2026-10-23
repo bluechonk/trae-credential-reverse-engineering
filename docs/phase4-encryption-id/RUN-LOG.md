@@ -42,3 +42,4 @@ storage.json 中所有 `iCubeAuthInfo://*` 值 base64 解码后前 6 字节：
 - 通过：findAppSource（installRoots × TRAE_APP_DIR_NAMES，Trae CN 优先生效）定位 `%LOCALAPPDATA%\Programs\Trae CN\resources\app`
 - 指标 10152 个（2026-08 为 6011，新版 bundle 扩大）；`out\main.js:2578` 仍命中 aes-256-cbc/createCipheriv 族
 - findAppSource 改为导出（phase5 复用）
+- 新逻辑：byteCrypto 模块定位输出——锚点类型 + 四张表首 6 字节指纹（hie=bfc0d8fa7af6 / wie=f6cc1ae8e846 / vie=52096ad53036 / qie=1fdda8338807）落盘 `bytecrypto-locator.json`，为 phase5/6 提供定位证据

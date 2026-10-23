@@ -228,6 +228,7 @@ npm run dev -- refresh    # 续期：ExchangeToken → 写回 storage.json → �
 - `src/phase6-decryption/decryptTraeAuth.ts` — storage.json 批量解密入口
 - `src/phase6-decryption/traeClient.ts` — ExchangeToken（双端点）签名/请求 + 签到 API 客户端
 - `src/phase6-decryption/traeUpstream.ts` — 登录 URL + GetUserInfo + 模型请求（2026-10 新增）
+- phase5 首选策略已改为 byteCrypto 密钥材料提取 + 真实密文验证（legacy 启发式降级为对照）
 - `src/phase6-decryption/flows.ts` — checkin / refresh / models 编排（含写回）
 
 ## 七、安全建议（防御视角）

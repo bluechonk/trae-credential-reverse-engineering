@@ -15,6 +15,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { resolve, join, relative } from 'node:path';
+import { findMainJs, findStorageJson } from '../utils/index.js';
 import { findAppSource } from '../phase4-encryption-id/index.js';
 
 interface KeyCandidate {
@@ -66,19 +67,60 @@ export async function phase5(): Promise<void> {
 
   const candidates: KeyCandidate[] = [];
 
-  // Strategy 1: Hardcoded keys
-  console.log(chalk.white('Strategy 1: Searching for hardcoded keys...'));
-  const spinner = ora('Scanning decompiled source...').start();
+  // ── Strategy 0（2026-10 新增，首选）：byteCrypto 密钥材料提取 + 真实密文验证 ──
+  // 旧策略 1/2 在新版 bundle 上只产出 121 个 createHash 噪音候选，无一可用。
+  // 真正可用的密钥材料是 main.js byteCrypto 模块内的四张 64B 硬编码表：
+  // 用锚点提取（与 phase6 共用实现），并以 storage.json 的真实密文做解密验证
+  // （SHA-512 tag 校验通过 = 材料确认有效），产出经过验证的候选而非噪音。
+  console.log(chalk.white('Strategy 0: byteCrypto key material extraction + real-ciphertext verification...'));
+  const spinner = ora('Extracting tables & verifying against live ciphertext...').start();
+  try {
+    const mainJs = findMainJs();
+    if (!mainJs) throw new Error('main.js not found (Trae CN installation missing?)');
+    const { extractTablesFromMainJs, initFromMainJs, decryptBlob } = await import('../phase6-decryption/byteCrypto.js');
+    const tables = extractTablesFromMainJs(mainJs);
+    initFromMainJs(mainJs);
+
+    // 取真实密文样本验证（storage.json 第一条 iCubeAuthInfo 密文）
+    const storageJson = findStorageJson();
+    if (!storageJson) throw new Error('storage.json not found');
+    const store = JSON.parse(readFileSync(storageJson, 'utf-8')) as Record<string, string>;
+    const sampleKey = Object.keys(store).find((k) => k.startsWith('iCubeAuthInfo://icube.cloudide'));
+    if (!sampleKey) throw new Error('no iCubeAuthInfo ciphertext sample in storage.json');
+    const sample = store[sampleKey];
+    const decrypted = await decryptBlob(sample);
+    if (!decrypted.ok || !decrypted.plaintext) throw new Error('verification decrypt failed: ' + (decrypted as any).reason);
+
+    const fp = (t: Uint8Array) => Array.from(t.slice(0, 6)).map((b) => b.toString(16).padStart(2, '0')).join('');
+    candidates.push({
+      strategy: 'bytecrypto-verified',
+      type: 'hardcoded',
+      value: `tables@${mainJs} [hie=${fp(tables.hie)} wie=${fp(tables.wie)} vie=${fp(tables.vie)} qie=${fp(tables.qie)}] mode=${decrypted.mode} sample=${sampleKey}`,
+      encoding: 'utf8',
+      file: relative(resolve(process.cwd(), 'src'), mainJs),
+      context: `Verified: decryptBlob on live ciphertext passed SHA-512 integrity tag (${(decrypted.plaintext.length || 0)} bytes plaintext). Key material = XOR of two 64B hardcoded tables; verified usable for AES-128-CBC envelope.`,
+    });
+    spinner.succeed(`byteCrypto key material VERIFIED (mode=${decrypted.mode}, sample decrypt OK)`);
+  } catch (err) {
+    spinner.fail('byteCrypto verification failed: ' + (err as Error).message);
+    console.log(chalk.gray('  Falling back to legacy heuristic strategies below...'));
+  }
+
+  // ── Strategy 1（legacy）：hardcoded keys 启发式扫描 ──
+  // 注：新版 bundle 上产出的是大量 createHash 调用噪音（121 项，无一可用），
+  // 保留仅作对照与历史方法参考；有效材料以上面的 bytecrypto-verified 为准。
+  console.log(chalk.white('\nStrategy 1: Searching for hardcoded keys (legacy heuristics)...'));
+  const legacySpinner = ora('Scanning source...').start();
   const hardcodedCandidates = searchHardcodedKeys(scanDir);
   candidates.push(...hardcodedCandidates);
-  spinner.succeed(`Found ${chalk.cyan(String(hardcodedCandidates.length))} hardcoded key candidates`);
+  legacySpinner.succeed(`Found ${chalk.cyan(String(hardcodedCandidates.length))} hardcoded key candidates (legacy, mostly noise on 2026-10 bundles)`);
 
-  // Strategy 2: Derived keys
-  console.log(chalk.white('\nStrategy 2: Analyzing key derivation...'));
-  spinner.start('Searching for derivation functions...');
+  // ── Strategy 2（legacy）：derived keys ──
+  console.log(chalk.white('\nStrategy 2: Analyzing key derivation (legacy heuristics)...'));
+  const legacySpinner2 = ora('Searching for derivation functions...').start();
   const derivedCandidates = analyzeKeyDerivation(scanDir);
   candidates.push(...derivedCandidates);
-  spinner.succeed(`Found ${chalk.cyan(String(derivedCandidates.length))} derivation candidates`);
+  legacySpinner2.succeed(`Found ${chalk.cyan(String(derivedCandidates.length))} derivation candidates (legacy)`);
 
   // Print results
   printCandidates(candidates);
@@ -94,9 +136,12 @@ export async function phase5(): Promise<void> {
 
   // Prompt for runtime extraction
   console.log(chalk.cyan('\n─── Next Steps ───'));
-  if (candidates.length === 0) {
+  const verified = candidates.some((c) => c.strategy === 'bytecrypto-verified');
+  if (verified) {
+    console.log(chalk.green('  Verified byteCrypto key material extracted. Proceed to Phase 6 for decryption.'));
+  } else if (candidates.length === 0) {
     console.log(chalk.yellow('  No hardcoded keys found. Try runtime extraction:'));
-    console.log(chalk.gray('  Run: frida -n "TraeWork.exe" -f src/phase5-key-extraction/hook-decrypt.js'));
+    console.log(chalk.gray('  Run: frida -n "Trae CN.exe" -f src/phase5-key-extraction/hook-decrypt.js'));
   } else {
     console.log(chalk.green('  Key candidates found. Proceed to Phase 6 for decryption.'));
   }
