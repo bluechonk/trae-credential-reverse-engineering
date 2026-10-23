@@ -19,6 +19,20 @@ Windows 上 **TRAE CN**（原名 TRAE SOLO CN / TraeWork CN）桌面客户端凭
 
 ## 快速开始
 
+### 零依赖 CLI（推荐，真实落地产物）
+
+```bash
+# 无需 npm install，Node >= 18 直接运行：
+node scripts/trae-cli.mjs decrypt    # 解密凭据（本地，无网络）
+node scripts/trae-cli.mjs validate  # 活性验证（2 次轻请求）
+node scripts/trae-cli.mjs checkin   # 签到状态（--claim 才领取）
+node scripts/trae-cli.mjs models    # 模型列表（2 次轻请求）
+node scripts/trae-cli.mjs login-url # 网页授权登录 URL
+node scripts/trae-cli.mjs refresh --yes  # 轮换凭据并写回 storage.json
+```
+
+### TypeScript 工程
+
 ```bash
 npm install
 npm run phase6          # 解密验证（本地，无网络请求）

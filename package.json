@@ -17,7 +17,8 @@
     "test": "vitest",
     "lint": "eslint src/",
     "login": "tsx src/index.ts login",
-    "models": "tsx src/index.ts models"
+    "models": "tsx src/index.ts models",
+    "cli": "node scripts/trae-cli.mjs"
   },
   "dependencies": {
     "@electron/asar": "^4.3.0",

@@ -518,4 +518,6 @@ ExchangeToken 未复测（会轮换凭据；当前 token 至 2026-11-06 有效�
 ```
 npm run dev -- models   # token 活性 + 模型列表（3 次轻请求，风控安全）
 npm run dev -- login    # 网页授权登录：本地回调(127.0.0.1:18080/authorize) + agent-browser 打开授权页，授权动作人工完成
+
+零依赖落地脚本 scripts/trae-cli.mjs（同逻辑直译，无需 npm install）：decrypt / validate / checkin / models / login-url / refresh 六命令，2026-10-24 全部实测通过（validate 双域 200、checkin status 200、models 21+22）。
 ```
