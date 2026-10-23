@@ -32,8 +32,10 @@ export function localAppDataDir(): string {
   return process.env.LOCALAPPDATA ?? join(homedir(), 'AppData', 'Local');
 }
 
-/** TRAE 应用数据目录名候选：官方同时使用 "TRAE SOLO CN" 与 "TraeWork CN" */
-export const TRAE_APP_DIR_NAMES = ['TRAE SOLO CN', 'TraeWork CN'] as const;
+/** TRAE 应用数据目录名候选：官方同时使用 "Trae CN"、"TRAE SOLO CN" 与 "TraeWork CN"。
+ *  顺序即优先级：2026-10 起桌面客户端改名为 "Trae CN"（%LOCALAPPDATA%\Programs\Trae CN），
+ *  旧安装名保留在候选列表尾部以兼容历史数据目录。 */
+export const TRAE_APP_DIR_NAMES = ['Trae CN', 'TRAE SOLO CN', 'TraeWork CN'] as const;
 
 let cachedProjectRoot: string | null = null;
 

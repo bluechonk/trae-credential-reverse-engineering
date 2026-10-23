@@ -1,0 +1,13 @@
+feat: Trae CN 1.107.1 重测解密链路并对齐最新域名/登录/模型实现
+
+- 本地解密: 安装名改 Trae CN, byteCrypto 锚点随混淆轮换失效(Em=async
+  已不存在), 新锚点用 userStorage.js 模块路径串, 4/4 解密重测通过
+- 域名规划对齐 modelmux traecn 实测: OAuth 迁 api.trae.com.cn
+  (/cloudide/api/v3/trae/), 模型走 trae-api-cn.mchost.guru, ExchangeToken
+  双端点候选自动回退
+- 新增 traeUpstream.ts: 登录 URL(网页授权 20 参数+本地回调), GetUserInfo,
+  remote 模型目录(45 模型)与 22 通道目录, 请求头含三处 token 与版本组
+- 新增 login 命令(agent-browser 打开授权页, 授权动作人工完成)与 models
+  命令(3 次轻请求验证: GetUserInfo/remote models/batch catalog 全 200)
+- 设备 ID 双安装共享不变, MachineID 取当前安装 telemetry 值
+- README/FLOW/API 文档同步, 附克制测试原则(防账号风控)

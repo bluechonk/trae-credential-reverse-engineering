@@ -15,7 +15,9 @@
     "phase5": "tsx src/phase5-key-extraction/index.ts",
     "phase6": "tsx src/phase6-decryption/index.ts",
     "test": "vitest",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "login": "tsx src/index.ts login",
+    "models": "tsx src/index.ts models"
   },
   "dependencies": {
     "@electron/asar": "^4.3.0",

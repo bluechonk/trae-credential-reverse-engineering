@@ -1,27 +1,35 @@
-# TRAE SOLO CN — 凭证逆向工程
+# TRAE CN — 凭证逆向工程
 
-Windows 上 **TRAE SOLO CN**（TraeWork CN）桌面客户端凭证存储的系统性逆向工程。
+Windows 上 **TRAE CN**（原名 TRAE SOLO CN / TraeWork CN）桌面客户端凭证存储的系统性逆向工程。
+
+> **2026-10-24 更新**：桌面客户端已改名 **Trae CN**（%LOCALAPPDATA%\Programs\Trae CN），本地解密链路已在 Trae CN v1.107.1 重测通过（byteCrypto 新锚点）；域名规划、登录 URL 与模型请求对齐 modelmux traecn 渠道实测（OAuth 迁至 `api.trae.com.cn`，模型走 `trae-api-cn.mchost.guru`）。详见 `docs/FLOW.md` §七。
 
 ## 成果
 
 | 指标 | 数值 |
 |---|---|
-| **解密** | 4/4 凭证条目（100%） |
+| **解密** | 4/4 凭证条目（100%，2026-10-24 在 Trae CN 1.107.1 重测通过） |
 | **API 端点发现** | 98 个 TRAE 专用路径（共 356 个） |
 | **成功调用 API** | 18 个可用 + 22 个需参数 |
-| **Token 续期** | 完整 ECDSA P-256 设备证明流程 |
+| **Token 续期** | 完整 ECDSA P-256 设备证明流程（双端点候选） |
 | **每日签到** | 状态查询 + 领取 |
+| **模型请求** | remote 目录 45 模型 + 22 通道目录（2026-10-24 实测） |
+| **浏览器登录** | 网页授权 URL（20 参数）+ 本地回调 + agent-browser 打开 |
 | **测试覆盖** | 18/18 通过 |
 
 ## 快速开始
 
 ```bash
 npm install
-npm run phase6          # 解密验证
+npm run phase6          # 解密验证（本地，无网络请求）
+npm run dev -- models   # token 活性 + 模型列表（共 3 次轻请求）
 npm run dev -- checkin  # 每日签到
-npm run dev -- refresh  # 轮换 token（请先关闭 TRAE！）
+npm run dev -- login    # 浏览器授权登录（agent-browser 打开授权页，人工授权一次）
+npm run dev -- refresh  # 轮换 token（请先关闭 TRAE！会轮换凭据，非必要不执行）
 npx vitest run          # 18/18 通过
 ```
+
+> ⚠ 克制原则：`models` 是验证用最小请求集（3 次轻请求）；`refresh` 会轮换凭据、`checkin` 会领取积分——频率过高会触发风控导致账号异常。
 
 ## 流程
 

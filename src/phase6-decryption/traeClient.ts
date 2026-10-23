@@ -20,11 +20,27 @@ import chalk from 'chalk';
 import { findStorageJson } from '../../src/utils/index.js';
 
 const UG_HOST = 'https://api.trae.cn';           // product.json bootConfig.ug.trae.normal
-const EXCHANGE_PATH = '/trae/api/v3/oauth/ExchangeToken';
 const CHECKIN_STATUS_PATH = '/trae/api/v2/ug/checkin_credits/status';
 const CHECKIN_CLAIM_PATH = '/trae/api/v2/ug/checkin_credits/claim';
 const CLIENT_ID_SOLO_FALLBACK = 'en1oxy7wnw8j9n'; // rv() fallback for SOLO channel
-const APP_VERSION = '1.107.1';
+export const APP_VERSION = '1.107.1';
+
+/**
+ * ExchangeToken 端点候选（按顺序尝试；2026-10 更新对齐 modelmux traecn 渠道实测）。
+ *
+ *   1. https://api.trae.com.cn/cloudide/api/v3/trae/oauth/ExchangeToken  ← 新（网页授权域）
+ *   2. https://api.trae.cn/trae/api/v3/oauth/ExchangeToken               ← 旧（IDE 域，2026-08 实测可用）
+ *
+ * 注意：两种凭据形态不同源——
+ *   - 本仓库凭据（IDE 本地解密）带设备 EC P-256 密钥对，请求需 DeviceProof 签名；
+ *   - modelmux 凭据（网页授权回调直出 refreshToken）用简化 body
+ *     {ClientID, RefreshToken, ClientSecret:"-", UserID:""}（无签名）。
+ * 若换用网页授权凭据（见 traeUpstream.loginViaBrowser），应改用简化 body。
+ */
+export const EXCHANGE_ENDPOINTS = [
+  'https://api.trae.com.cn/cloudide/api/v3/trae/oauth/ExchangeToken',
+  'https://api.trae.cn/trae/api/v3/oauth/ExchangeToken',
+] as const;
 
 const DECRYPTED_DIR = resolve(process.cwd(), 'output', 'phase6', 'decrypted');
 const CRED_FILE = resolve(DECRYPTED_DIR, 'iCubeAuthInfo_icube_cloudide.json');
@@ -63,8 +79,9 @@ function machineId(): string {
   return '';
 }
 
-/** Real device id (ICDRS): numeric id from [ICDRS] logs; matches iCubeAuthInfo://icube-dc:<did> key */
-const AHA_DEVICE_ID = '1448485154478571';
+/** Real device id (ICDRS): numeric id from [ICDRS] logs; matches iCubeAuthInfo://icube-dc:<did> key.
+ *  2026-10 复测：Trae CN 与 TRAE SOLO CN 双安装共享同一设备注册，此 ID 仍有效。 */
+export const AHA_DEVICE_ID = '1448485154478571';
 
 /** Mirror of E_e(): sign canonical string with the device EC P-256 private key */
 let lastCanonical = '';
@@ -172,12 +189,14 @@ export interface ExchangeResult {
 }
 
 /** Build the ExchangeToken request (exposed for debugging/diffing) */
-export function buildExchangeRequest(separator = '\n', dsaEncoding: 'der' | 'ieee-p1363' = 'der') {
+export function buildExchangeRequest(separator = '\n', dsaEncoding: 'der' | 'ieee-p1363' = 'der', endpointIndex = 0) {
   const creds = loadCreds();
   const device = loadDeviceKeyPair();
   const clientId = CLIENT_ID_SOLO_FALLBACK;
+  const url = EXCHANGE_ENDPOINTS[endpointIndex] ?? EXCHANGE_ENDPOINTS[0];
+  const path = new URL(url).pathname;
 
-  const proof = signDeviceProof('POST', EXCHANGE_PATH, clientId, creds.refreshToken, device.privateKeyPEM, separator, dsaEncoding);
+  const proof = signDeviceProof('POST', path, clientId, creds.refreshToken, device.privateKeyPEM, separator, dsaEncoding);
   const body = {
     ClientID: clientId,
     ClientSecret: '',
@@ -187,50 +206,58 @@ export function buildExchangeRequest(separator = '\n', dsaEncoding: 'der' | 'iee
     IDEVersion: APP_VERSION,
   };
   return {
-    url: UG_HOST + EXCHANGE_PATH,
+    url,
     headers: { 'Content-Type': 'application/json', 'x-cloudide-token': '' } as Record<string, string>,
     body,
   };
 }
 
-/** POST /trae/api/v3/oauth/ExchangeToken — rotate token via refresh token */
+/** POST ExchangeToken — rotate token via refresh token（端点候选依次回退） */
 export async function exchangeTokenByRefreshToken(separator = '\n', dsaEncoding: 'der' | 'p1363' = 'der'): Promise<ExchangeResult> {
-  const req = buildExchangeRequest(separator === ' ' ? ' ' : '\n', dsaEncoding as 'der' | 'ieee-p1363');
-  const { url, headers, body } = req;
+  let last: ExchangeResult | null = null;
+  for (let i = 0; i < EXCHANGE_ENDPOINTS.length; i++) {
+    const req = buildExchangeRequest(separator === ' ' ? ' ' : '\n', dsaEncoding as 'der' | 'ieee-p1363', i);
+    const { url, headers, body } = req;
 
-  let resp: Response;
-  try {
-    resp = await fetch(url, {
-      method: 'POST',
-      // NOTE: empirically the endpoint expects an EMPTY x-cloudide-token for the
-      // refresh-token grant; sending the old access token yields 20405
-      // "Device proof required" (wrong auth branch server-side).
-      headers,
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(30000),
-    });
-  } catch (err) {
-    return { ok: false, error: 'network: ' + (err as Error).message };
-  }
+    let resp: Response;
+    try {
+      resp = await fetch(url, {
+        method: 'POST',
+        // NOTE: empirically the endpoint expects an EMPTY x-cloudide-token for the
+        // refresh-token grant; sending the old access token yields 20405
+        // "Device proof required" (wrong auth branch server-side).
+        headers,
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(30000),
+      });
+    } catch (err) {
+      last = { ok: false, error: 'network: ' + (err as Error).message };
+      continue;
+    }
 
-  const json = await resp.json().catch(() => null) as any;
-  const errCode = json?.ResponseMetadata?.Error?.Code;
-  if (!resp.ok || errCode) {
-    return { ok: false, error: `HTTP ${resp.status} code=${errCode ?? '?'} msg=${json?.ResponseMetadata?.Error?.Message ?? ''}`, raw: json };
-  }
-  const result = json?.Result;
-  if (!result?.Token) {
-    return { ok: false, error: 'no Result.Token in response', raw: json };
-  }
+    const json = await resp.json().catch(() => null) as any;
+    const errCode = json?.ResponseMetadata?.Error?.Code;
+    if (!resp.ok || errCode) {
+      const result: ExchangeResult = { ok: false, error: `HTTP ${resp.status} code=${errCode ?? '?'} msg=${json?.ResponseMetadata?.Error?.Message ?? ''}`, raw: json };
+      // 404/无 Result 视为端点不可用，尝试下一个；其它错误（如设备证明失败）不重试
+      if (resp.status === 404 && i < EXCHANGE_ENDPOINTS.length - 1) { last = result; continue; }
+      return result;
+    }
+    const result = json?.Result;
+    if (!result?.Token) {
+      return { ok: false, error: 'no Result.Token in response', raw: json };
+    }
 
-  return {
-    ok: true,
-    newToken: result.Token,
-    newRefreshToken: result.RefreshToken,
-    expiredAt: normalizeExpiry(result.TokenExpireAt, result.TokenExpireDuration),
-    refreshExpiredAt: result.RefreshExpireAt ? new Date(result.RefreshExpireAt).toISOString() : undefined,
-    raw: { keys: Object.keys(result) },
-  };
+    return {
+      ok: true,
+      newToken: result.Token,
+      newRefreshToken: result.RefreshToken,
+      expiredAt: normalizeExpiry(result.TokenExpireAt, result.TokenExpireDuration),
+      refreshExpiredAt: result.RefreshExpireAt ? new Date(result.RefreshExpireAt).toISOString() : undefined,
+      raw: { keys: Object.keys(result) },
+    };
+  }
+  return last ?? { ok: false, error: 'no endpoint attempted' };
 }
 
 function normalizeExpiry(expireAt: unknown, durationMs: unknown): string | undefined {

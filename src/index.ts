@@ -111,4 +111,26 @@ program
     await runRefresh();
   });
 
+program
+  .command('login')
+  .description('Browser authorization login: build authorize URL, open it via agent-browser, capture local callback token')
+  .action(async () => {
+    console.log(chalk.yellow('\n▶ Browser Authorization Login\n'));
+    const { loginViaBrowser } = await import('./phase6-decryption/traeUpstream.js');
+    const r = await loginViaBrowser();
+    if (!r.ok) {
+      console.log(chalk.red('  ✗ login failed: ' + r.error));
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('models')
+  .description('Fetch model list (remote web catalog + multi-channel catalog, one request each)')
+  .action(async () => {
+    console.log(chalk.yellow('\n▶ Model Requests\n'));
+    const { runModels } = await import('./phase6-decryption/flows.js');
+    await runModels();
+  });
+
 program.parse();

@@ -462,3 +462,59 @@ npx vitest run          # 18/18 通过
 Test Files  2 passed (2)
      Tests  18 passed (18)
 ```
+
+---
+
+## 九、2026-10 更新（Trae CN 1.107.1 重测与域名规划）
+
+> 2026-10-24。桌面客户端改名 **Trae CN**（`%LOCALAPPDATA%\Programs\Trae CN`，数据目录 `%APPDATA%\Trae CN`），全部结论在 Trae CN 1.107.1 实测复核；域名规划与登录/模型链路对齐 modelmux `packages/core/channels/traecn` 渠道实测。
+
+### 9.1 本地解密链路重测（无网络请求）
+
+| 变化点 | 旧（2026-08） | 新（2026-10-24 实测） |
+|---|---|---|
+| 安装目录 | `C:\Program Files\TRAE SOLO CN\` | `%LOCALAPPDATA%\Programs\Trae CN\` |
+| 数据目录候选 | `TRAE SOLO CN` / `TraeWork CN` | 新增 `Trae CN`（优先），旧名保留兼容 |
+| byteCrypto 密钥表锚点 | main.js 中 `,Em=async t=>` | 锚点已随混淆轮换失效；改为 `…components/userStorage.js"(){"use strict"` 模块路径串（不混淆），四张 64 元素 Uint8Array 表在其前 ~400 字节 |
+| 信封常量 | `[116,99,5,16,0,0]` 字面量 | 拆成独立混淆变量（`YN=116,XN=99,QN=5,ZN=16` 等），语义不变 |
+| 设备 ID | `1448485154478571` | **不变**（Trae CN 与 TRAE SOLO CN 双安装共享同一设备注册） |
+| 解密结果 | 4/4 | **4/4 全通**（AES 模式，SHA-512 完整性校验通过） |
+
+### 9.2 域名规划（对齐 modelmux traecn 实测）
+
+| 业务 | host | 路径 | 认证头 |
+|---|---|---|---|
+| OAuth（ExchangeToken / GetUserInfo） | `https://api.trae.com.cn` | `/cloudide/api/v3/trae/…` | ExchangeToken 空 `x-cloudide-token`；GetUserInfo 用 `x-cloudide-token` |
+| agentHost（对话 + 模型列表） | `https://trae-api-cn.mchost.guru` | `/api/agent/v3/llm_utils_chat`、`/api/ide/v1/batch_get_detail_param`、`/api/remote/v1/models` | token 三处（`Cloud-IDE-JWT` / `X-Cloudide-Token` / `X-Ide-Token`）+ `X-App-Id` + 版本头组 |
+| 签到 | `https://api.trae.cn`（不变） | `/trae/api/v2/ug/…` | `Cloud-IDE-JWT` + `x-device-id` |
+
+- 客户端解密凭据 `.host` 下发的仍是 `https://api.trae.cn`（IDE 域）；OAuth 域与之分离。
+- `X-App-Id` 必须是 `6eefa01c-1036-4c7e-9ca5-d891f63bfcd8`（旧 `…01a…` 记录已被上游撤下，错误值得到流内 `2001 failed to get app config`）。
+- 版本头是模型准入条件：`X-Ide-Version: 0.1.52` / `X-Ide-Version-Code: 20260811`。
+
+### 9.3 登录 URL（网页授权门户）
+
+20 参数形态（`buildAuthorizeUrl`，见 `src/phase6-decryption/traeUpstream.ts`）：`https://www.trae.cn/authorization?login_version=1&auth_from=solo&…`。三个坑：
+
+1. 参数名必须是 `auth_callback_url`（无 `callback_url`/`redirect_uri`）；
+2. `client_id` 必须用网页端 `ono9krqynydwx5`（IDE 客户端 ID 会被门户 404）；
+3. `hide_saas_login=true` 必带。
+
+回调**直接回传 token**（query 里的 `refreshToken` / `userJwt.Token`，非 OAuth `?code=`；出现 PKCE `code` 说明上游改了流程）。
+
+### 9.4 模型请求实测（2026-10-24，共 3 次轻请求）
+
+| 请求 | 结果 |
+|---|---|
+| POST `api.trae.com.cn/cloudide/api/v3/trae/GetUserInfo` | 200，token LIVE（bluechonk） |
+| GET `trae-api-cn.mchost.guru/api/remote/v1/models` | 200，45 个唯一模型（glm-5.3-flash / Doubao-Seed-2.1-Pro / kimi-k3 等） |
+| POST `trae-api-cn.mchost.guru/api/ide/v1/batch_get_detail_param` | 200，22 个 function groups |
+
+ExchangeToken 未复测（会轮换凭据；当前 token 至 2026-11-06 有效）。端点已改为双候选：新域 `/cloudide/api/v3/trae/oauth/ExchangeToken` 优先，旧域 `/trae/api/v3/oauth/ExchangeToken` 自动回退。若换用网页授权凭据（`login` 命令产物），ExchangeToken 应改用简化 body `{ClientID, RefreshToken, ClientSecret:"-", UserID:""}`（无设备签名——两种凭据不同源）。
+
+### 9.5 新增命令
+
+```
+npm run dev -- models   # token 活性 + 模型列表（3 次轻请求，风控安全）
+npm run dev -- login    # 网页授权登录：本地回调(127.0.0.1:18080/authorize) + agent-browser 打开授权页，授权动作人工完成
+```

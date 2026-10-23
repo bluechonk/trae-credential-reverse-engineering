@@ -15,6 +15,8 @@ import {
   checkinStatus,
   checkinClaim,
 } from './traeClient.js';
+import { getUserInfo, fetchRemoteModels, fetchModelCatalog } from './traeUpstream.js';
+import { maskToken } from './traeClient.js';
 import { encryptBlob, initFromMainJs } from './byteCrypto.js';
 import { findMainJs, findStorageJson } from '../../src/utils/index.js';
 
@@ -158,9 +160,55 @@ export async function runRefresh(): Promise<void> {
 async function isTraeRunning(): Promise<boolean> {
   try {
     const { execSync } = await import('node:child_process');
-    const out = execSync('tasklist /FI "IMAGENAME eq TRAE SOLO CN.exe" /NH', { encoding: 'utf-8' });
-    return out.includes('TRAE');
+    // 2026-10 起进程名为 Trae CN.exe，旧安装仍是 TRAE SOLO CN.exe
+    const out = execSync('tasklist /NH', { encoding: 'utf-8' });
+    return /Trae( SOLO)? CN\.exe/i.test(out);
   } catch {
     return false;
   }
+}
+
+/**
+ * models 命令：验证 token 活性（GetUserInfo 1 次）+ 拉取模型列表（各 1 次）。
+ *
+ * ⚠ 克制原则：本命令只发 3 次轻请求（GetUserInfo / remote models / batch catalog），
+ * 不做对话（消耗额度）、不刷新 token（轮换凭据），避免触发风控。
+ */
+export async function runModels(): Promise<void> {
+  const creds = loadCreds();
+  console.log(chalk.gray(`  token: ${maskToken(creds.token)} expires ${creds.expiredAt}\n`));
+
+  // 1) token 活性（GetUserInfo，x-cloudide-token）
+  console.log(chalk.white('  [1/3] GetUserInfo (api.trae.com.cn)'));
+  const ui = await getUserInfo(creds.token);
+  if (!ui.ok) {
+    console.log(chalk.red(`  ✗ token inactive or request failed: HTTP ${ui.http} ${ui.error ?? ''}`));
+    return;
+  }
+  console.log(chalk.green(`  ✓ HTTP ${ui.http} — token LIVE (nickname=${ui.nickname ?? '?'} uid=${ui.userId ?? '?'})`));
+
+  // 2) remote 网页模型目录（目录主源）
+  console.log(chalk.white('\n  [2/3] GET /api/remote/v1/models (trae-api-cn.mchost.guru)'));
+  const remote = await fetchRemoteModels(creds.token);
+  if (!remote.ok) {
+    console.log(chalk.red(`  ✗ remote models failed: HTTP ${remote.http} ${remote.error ?? ''}`));
+  } else {
+    console.log(chalk.green(`  ✓ HTTP ${remote.http} — ${remote.count} unique models`));
+    console.log(chalk.gray('    ' + (remote.models ?? []).slice(0, 12).join(', ') + ((remote.models ?? []).length > 12 ? ' …' : '')));
+  }
+
+  // 3) 多通道目录（batch_get_detail_param；新账号可能 2001）
+  console.log(chalk.white('\n  [3/3] POST /api/ide/v1/batch_get_detail_param'));
+  const catalog = await fetchModelCatalog(creds.token);
+  if (!catalog.ok) {
+    console.log(chalk.yellow(`  ⚠ catalog failed: HTTP ${catalog.http} ${catalog.error ?? ''}`));
+  } else {
+    console.log(chalk.green(`  ✓ HTTP ${catalog.http} — ${catalog.groups} function groups`));
+  }
+
+  writeFileSync(
+    resolve(process.cwd(), 'output', 'phase6', 'models.json'),
+    JSON.stringify({ at: new Date().toISOString(), userInfo: ui, remote, catalog }, null, 2),
+  );
+  console.log(chalk.gray('\n  Evidence saved to: output/phase6/models.json'));
 }

@@ -1,5 +1,6 @@
 # TRAE SOLO CN — API 业务域分析
 
+> **2026-10-24 勘误**：OAuth 端点已迁移——ExchangeToken/GetUserInfo 用 `https://api.trae.com.cn/cloudide/api/v3/trae/…`（旧 `api.trae.cn/trae/api/v3/oauth/…` 为回退路径）；模型请求走 `https://trae-api-cn.mchost.guru`（详见 docs/FLOW.md §九）。下表保留 2026-08 原始实测记录供对照。
 > 日期：2026-08-22 | 基于 89 个端点实测 + 返回字段分析
 
 按业务域对 98 个 TRAE 专用 API 分类，说明各接口用途及业务背景。

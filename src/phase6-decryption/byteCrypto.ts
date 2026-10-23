@@ -46,10 +46,28 @@ export interface ByteCryptoTables {
 export function extractTablesFromMainJs(mainJsPath: string): ByteCryptoTables {
   const src = readFileSync(mainJsPath, 'utf-8');
 
-  // Tables sit shortly before the Em/Pv arrow functions inside byteCrypto chunk
-  const anchor = src.indexOf(',Em=async t=>');
-  if (anchor < 0) throw new Error('Anchor "Em=async" not found in main.js');
-  const region = src.slice(Math.max(0, anchor - 8000), anchor);
+  // 锚点候选（跨版本混淆名会变，模块路径串不变）：
+  //   旧版（2026-08）: ",Em=async t=>"，表在其前 8000 字符内
+  //   新版（2026-10, Trae CN 1.107.1+）: 表紧邻 userStorage.js 模块路径串，
+  //     形态为 `…userStorage.js"(){"use strict";…`，四张 64 元素 Uint8Array
+  //     在它前面约 400 字节内（同段还有信封常量 YN=116/XN=99/QN=5/ZN=16 等）
+  const anchors: Array<[string, string]> = [
+    ['components/userStorage.js"(){"use strict"', 'userStorage.js module path'],
+    [',Em=async t=>', 'Em=async'],
+  ];
+  let region: string | null = null;
+  let usedAnchor = '';
+  for (const [needle, label] of anchors) {
+    const anchor = src.indexOf(needle);
+    if (anchor >= 0) {
+      region = src.slice(Math.max(0, anchor - 8000), anchor);
+      usedAnchor = label;
+      break;
+    }
+  }
+  if (region === null) {
+    throw new Error('No byteCrypto anchor found in main.js (tried userStorage.js / Em=async)');
+  }
 
   const arrayRe = /(?:new\s+Uint8Array|Uint8Array\.from)\(\s*\[\s*([0-9\s*,]+?)\s*\]\s*\)/g;
   const found: number[][] = [];
