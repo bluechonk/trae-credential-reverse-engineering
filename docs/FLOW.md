@@ -1,4 +1,4 @@
-# TRAE SOLO CN 凭证逆向 — 全流程手册
+# TRAE CN 凭证逆向 — 全流程手册
 
 > **状态：✅ 全流程打通（解密 ✅ / API 验证 ✅ / 自动签到 ✅ / 续期轮换 ✅）** | 日期：2026-08-22
 
@@ -10,23 +10,23 @@
 
 ## 一、项目总览
 
-**目标**：TRAE SOLO CN v1.107.1（Electron / VS Code fork）桌面客户端凭证存储逆向。纯 Node.js/TypeScript 实现，18 个测试全绿。
+**目标**：Trae CN v1.107.1（原 TRAE SOLO CN，Electron / VS Code fork）桌面客户端凭证存储逆向。纯 Node.js/TypeScript 实现，18 个测试全绿。
 
 ### 1.1 目标信息
 
 | 项目 | 值 |
 |---|---|
-| 应用 | TRAE SOLO CN v1.107.1（aka TraeWork CN） |
+| 应用 | **Trae CN** v1.107.1（原名 TRAE SOLO CN / TraeWork CN） |
 | 框架 | Electron (Chromium + Node.js)，VS Code fork |
-| 安装 | `C:\Program Files\TRAE SOLO CN\` |
-| 数据 | `%APPDATA%\TRAE SOLO CN\` |
-| API host | `https://api.trae.cn`（product.json `bootConfig.ug.trae.normal`） |
+| 安装 | `%LOCALAPPDATA%\Programs\Trae CN\`（旧安装曾位于 `C:\Program Files\TRAE SOLO CN\`） |
+| 数据 | `%APPDATA%\Trae CN\`（旧：`%APPDATA%\TRAE SOLO CN\`） |
+| API host | `https://api.trae.cn`（product.json `bootConfig.ug.trae.normal`）；OAuth 已迁 `https://api.trae.com.cn`，模型走 `https://trae-api-cn.mchost.guru`（§九） |
 
 ### 1.2 目录结构
 
 ```
 src/
-├── index.ts                          ← CLI 入口（Commander，7 个命令）
+├── index.ts                          ← CLI 入口（Commander，11 个命令）
 ├── phase1-reconnaissance/index.ts    ← 侦察：框架/版本/数据目录
 ├── phase2-data-collection/index.ts   ← 数据收集（交互式，已说明跳过原因）
 ├── phase3-format-analysis/index.ts    ← 熵值+魔数扫描
@@ -37,10 +37,11 @@ src/
 │   ├── index.ts
 │   └── hook-decrypt.js
 ├── phase6-decryption/
-│   ├── byteCrypto.ts                 ← 核心：信封加解密 + 表提取
+│   ├── byteCrypto.ts                 ← 核心：信封加解密 + 表提取（双锚点候选）
 │   ├── decryptTraeAuth.ts            ← storage.json 批量解密
-│   ├── traeClient.ts                 ← ExchangeToken 签名 + 签到客户端
-│   ├── flows.ts                      ← checkin / refresh 编排
+│   ├── traeClient.ts                 ← ExchangeToken（双端点）+ 签到客户端
+│   ├── traeUpstream.ts               ← 登录 URL + GetUserInfo + 模型请求（2026-10 新增）
+│   ├── flows.ts                      ← checkin / refresh / models 编排
 │   ├── validate.ts                   ← /icube/api/v1/user 验证
 │   └── index.ts                      ← phase6 入口
 └── utils/
@@ -89,9 +90,9 @@ tests/entropy.test.ts|magic.test.ts    ← 18 个测试
 **运行**：`npm run phase1`
 
 **关键发现**：
-- 确认目标为 TRAE SOLO CN v1.107.1，Electron + VS Code fork
-- 安装路径：`C:\Program Files\TRAE SOLO CN\`
-- 数据路径：`%APPDATA%\TRAE SOLO CN\`
+- 确认目标为 Trae CN v1.107.1（首测时为 TRAE SOLO CN 1.107.1），Electron + VS Code fork
+- 安装路径：`%LOCALAPPDATA%\Programs\Trae CN\`（首测：`C:\Program Files\TRAE SOLO CN\`）
+- 数据路径：`%APPDATA%\Trae CN\`（首测：`%APPDATA%\TRAE SOLO CN\`）
 - 应用为**解包目录**（无 app.asar），源码在 `resources\app\out\main.js`
 
 **输出**：`docs/phase1-reconnaissance/RUN-LOG.md`
@@ -164,7 +165,7 @@ tests/entropy.test.ts|magic.test.ts    ← 18 个测试
 
 | 材料 | 来源 | 用途 | 记录 |
 |---|---|---|---|
-| 4 张 64 字节硬编码表（Hie/Wie/Vie/Qie） | `out/main.js` 锚点 `,Em=async t=>` 前 ~3KB | 密钥派生 pepper | 运行时正则提取，不手工转录 |
+| 4 张 64 字节硬编码表（Hie/Wie/Vie/Qie） | `out/main.js` byteCrypto 模块内，锚点随版本轮换（2026-08：`,Em=async t=>` 前 ~3KB；2026-10：`userStorage.js` 模块路径串前 ~400B，双锚点候选） | 密钥派生 pepper | 运行时正则提取，不手工转录 |
 | 设备 EC P-256 密钥对 | `iCubeAuthInfo://icube-dc:1448****8571` | ExchangeToken 的 DeviceProof 签名 | 私钥 `-----BEGIN PRIVATE KEY----- *****（已遮盖）`；公钥指纹 `7acffc8272719c0a` |
 | ClientID（SOLO/stable） | product.json `authConfig.SOLO.stable` | OAuth ClientID | `en1oxy7wnw8j9n`（客户端内置公开值） |
 | 动态配置缓存密钥 | `md5("TRAE SOLO CN")` hex 作 32B key | 解密 `Local Storage\config.db` | 派生值，非存储密钥 |

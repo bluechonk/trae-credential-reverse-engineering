@@ -1,15 +1,15 @@
-# TRAE SOLO CN 凭证逆向 — 完整分析报告
+# TRAE CN 凭证逆向 — 完整分析报告
 
-> **状态：✅ 全流程打通（解密 ✅ / API 验证 ✅ / 自动签到 ✅ / 续期轮换 ✅）** | 日期：2026-08-22
+> **状态：✅ 全流程打通（解密 ✅ / API 验证 ✅ / 自动签到 ✅ / 续期轮换 ✅）** | 首测：2026-08-22 | 重测：2026-10-24（Trae CN 1.107.1，4/4 解密 + GetUserInfo/模型请求验证通过，见 `docs/FLOW.md` §九）
 
 ## 目标信息
 
 | 项目 | 值 |
 |---|---|
-| 应用 | TRAE SOLO CN v1.107.1（aka TraeWork CN） |
+| 应用 | **Trae CN** v1.107.1（原名 TRAE SOLO CN / TraeWork CN） |
 | 框架 | Electron (Chromium + Node.js)，VS Code fork |
-| 安装 | `C:\Program Files\TRAE SOLO CN\` |
-| 数据 | `%APPDATA%\TRAE SOLO CN\` |
+| 安装 | `%LOCALAPPDATA%\Programs\Trae CN\`（旧安装曾位于 `C:\Program Files\TRAE SOLO CN\`） |
+| 数据 | `%APPDATA%\Trae CN\`（旧：`%APPDATA%\TRAE SOLO CN\`，历史数据仍可解密） |
 
 > 🔒 本报告所有敏感值按 `docs/README.md` 脱敏规范处理。
 
@@ -24,7 +24,7 @@
 | 同上 | `iCubeAuthInfo://usertag` | `{userId: "cn"}` 区域映射 |
 | 同上 | `iCubeServerData://icube.cloudide` | 明文 JSON：权益/商业化数据 |
 | `Local Storage/leveldb/` | `SLARDARsolo_pc` | base64+URL编码 JSON（渲染层 Tea SDK 自生成 web_id，**非**真实设备ID） |
-| `Local Storage/config.db` | 动态配置缓存 | AES-256-CBC，key=`md5("TRAE SOLO CN")` hex 作 32B key，前16字节为 IV |
+| `Local Storage/config.db` | 动态配置缓存 | AES-256-CBC，key=`md5("TRAE SOLO CN")` hex 作 32B key，前16字节为 IV（2026-08 实测；新版应用名变为 Trae CN，key 或随目录名变化，未复测） |
 
 ---
 
@@ -69,10 +69,16 @@ iv     = mat[16:32]
 
 ### 2.5 硬编码表提取方式
 
-四张表位于 `out/main.js` 中 `,Em=async t=>` 锚点前 ~3KB 处：
-`Hie=new Uint8Array([...])`, `Wie=new Uint8Array([...])`, `Vie=Uint8Array.from([...])`, `Qie=Uint8Array.from([...])`
+四张表位于 `out/main.js` byteCrypto 模块内。**锚点随版本混淆轮换**，实现采用双锚点候选（`src/phase6-decryption/byteCrypto.ts`）：
 
-本项目实现（`src/phase6-decryption/byteCrypto.ts`）在**运行时直接从安装的 main.js 提取**，避免手工转录错误，且随版本自动适配。
+| 版本 | 锚点 | 表位置 |
+|---|---|---|
+| 2026-08（TRAE SOLO CN 1.107.1） | `,Em=async t=>` | 锚点前 ~3KB |
+| 2026-10（Trae CN 1.107.1+） | `…components/userStorage.js"(){"use strict"` 模块路径串（不混淆） | 锚点前 ~400 字节，同段有信封常量 `YN=116,XN=99,QN=5,ZN=16`（即 header 116,99,5,16,0,0） |
+
+形如 `Hie=new Uint8Array([...])`, `Wie=new Uint8Array([...])`, `Vie=Uint8Array.from([...])`, `Qie=Uint8Array.from([...])`（新版变量名不同，按表序取最后四张）。
+
+本项目实现（`src/phase6-decryption/byteCrypto.ts`）在**运行时直接从安装的 main.js 提取**，避免手工转录错误；2026-10-24 在 Trae CN 安装上重测 4/4 解密通过。
 
 ---
 
@@ -115,7 +121,12 @@ body:    { mid, did, uid, userRegion, organization, scope, tenant, productCode�
 
 ## 四、续期链路（refreshToken → 新 token）✅ 已实测
 
-**端点**：`POST https://api.trae.cn/trae/api/v3/oauth/ExchangeToken`（ugApi host）
+**端点（双候选，2026-10 对齐 modelmux 实测）**：
+
+1. 新：`POST https://api.trae.com.cn/cloudide/api/v3/trae/oauth/ExchangeToken`
+2. 旧：`POST https://api.trae.cn/trae/api/v3/oauth/ExchangeToken`（ugApi host，2026-08 实测可用）
+
+实现按顺序尝试，404 自动回退下一候选（`EXCHANGE_ENDPOINTS`）。
 
 ### 4.1 请求
 
@@ -129,11 +140,15 @@ body:    { mid, did, uid, userRegion, organization, scope, tenant, productCode�
 | DeviceProof | `{Signature, Timestamp, Nonce}` —— **坑②：字段名必须 PascalCase**，小写会被服务器当作无 proof（20405） |
 | IDEVersion | `1.107.1` |
 
-**DeviceProof 签名**（ECDSA P-256 / SHA-256 / DER / base64，私钥=存储的设备私钥）：
+**DeviceProof 签名**（ECDSA P-256 / SHA-256 / DER / base64，私钥=存储的设备私钥；path 按当前尝试的端点计算）：
 
 ```
-canonical = "POST\n/trae/api/v3/oauth/ExchangeToken\n<ClientID>\n<RefreshToken>\n<unix秒>\n<32位hex随机数>"
+canonical = "POST\n<path>\n<ClientID>\n<RefreshToken>\n<unix秒>\n<32位hex随机数>"
 ```
+
+> ⚠ 凭据分两种来源，刷新形态不同：本仓库凭据（IDE 本地解密）用上表带 DeviceProof 的形态；
+> 网页授权凭据（`login` 命令产物，回调直出 refreshToken）用简化 body
+> `{ClientID, RefreshToken, ClientSecret:"-", UserID:""}`（无签名，对齐 modelmux traecn 实测）。
 
 ### 4.2 响应
 
@@ -202,15 +217,18 @@ npm run phase4            # 加密识别：6011 个特征（PBKDF2/HKDF/bcrypt/A
 npm run phase5            # 密钥提取：硬编码模式搜索
 npm run phase6            # 解密验证：byteCrypto 信封解密 ← 最终突破点
 npm run dev -- validate   # 解密凭证 API 实测
+npm run dev -- models     # token 活性 + 模型列表（3 次轻请求，2026-10 新增）
 npm run dev -- checkin    # 签到：status → claim(未签到时) → 复核
+npm run dev -- login      # 网页授权登录：agent-browser 打开授权页 + 本地回调（2026-10 新增）
 npm run dev -- refresh    # 续期：ExchangeToken → 写回 storage.json → 验证
 ```
 
 关键文件：
-- `src/phase6-decryption/byteCrypto.ts` — 算法复刻（表提取/派生/解密/**加密**/校验）
+- `src/phase6-decryption/byteCrypto.ts` — 算法复刻（表提取/派生/解密/**加密**/校验，双锚点候选）
 - `src/phase6-decryption/decryptTraeAuth.ts` — storage.json 批量解密入口
-- `src/phase6-decryption/traeClient.ts` — ExchangeToken 签名/请求 + 签到 API 客户端
-- `src/phase6-decryption/flows.ts` — checkin / refresh 编排（含写回）
+- `src/phase6-decryption/traeClient.ts` — ExchangeToken（双端点）签名/请求 + 签到 API 客户端
+- `src/phase6-decryption/traeUpstream.ts` — 登录 URL + GetUserInfo + 模型请求（2026-10 新增）
+- `src/phase6-decryption/flows.ts` — checkin / refresh / models 编排（含写回）
 
 ## 七、安全建议（防御视角）
 

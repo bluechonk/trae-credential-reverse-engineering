@@ -1,4 +1,4 @@
-# TRAE SOLO CN — Complete API Reference
+# TRAE CN — Complete API Reference
 
 > **2026-10-24 勘误**：OAuth 端点已迁移——ExchangeToken/GetUserInfo 用 `https://api.trae.com.cn/cloudide/api/v3/trae/…`（旧 `api.trae.cn/trae/api/v3/oauth/…` 为回退路径）；模型请求走 `https://trae-api-cn.mchost.guru`（详见 docs/FLOW.md §九）。下表保留 2026-08 原始实测记录供对照。
 > Generated: 2026-08-22 | Method: Automated scan of 89 endpoints across 5 auth categories

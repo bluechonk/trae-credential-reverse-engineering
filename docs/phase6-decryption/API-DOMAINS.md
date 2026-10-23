@@ -1,4 +1,4 @@
-# TRAE SOLO CN — API 业务域分析
+# TRAE CN — API 业务域分析
 
 > **2026-10-24 勘误**：OAuth 端点已迁移——ExchangeToken/GetUserInfo 用 `https://api.trae.com.cn/cloudide/api/v3/trae/…`（旧 `api.trae.cn/trae/api/v3/oauth/…` 为回退路径）；模型请求走 `https://trae-api-cn.mchost.guru`（详见 docs/FLOW.md §九）。下表保留 2026-08 原始实测记录供对照。
 > 日期：2026-08-22 | 基于 89 个端点实测 + 返回字段分析
@@ -37,7 +37,7 @@
 | API | 认证 | 状态 | 用途 |
 |---|---|---|---|
 | `/trae/api/v2/ug/checkin_credits/status` | `Cloud-IDE-JWT` + `x-device-id` | ✅ | 查询今日签到状态（`checked_in`、`credits`） |
-| `/trae/api/v2/ug/checkin_credits/claim` | `Cloud-IDE-JWT` + `x-device-id` | ✅ | 领取每日签到积分（固定 200 分） |
+| `/trae/api/v2/ug/checkin_credits/claim` | `Cloud-IDE-JWT` + `x-device-id` | ✅ | 领取每日签到积分（分值随活动浮动：2026-08 实测 200；2026-10 客户端 UI 显示每日领 100 积分+抽奖） |
 | `/trae/api/v2/ug/activity/info` | `Cloud-IDE-JWT` + `x-device-id` | ~ | 商业化活动列表（`commercial_activities`） |
 | `/trae/api/v2/ug/activity/action` | `Cloud-IDE-JWT` + `x-device-id` | 4001 | 活动操作（领取/参与，需 `activity_id`） |
 | `/trae/api/v2/ug/work_fission/grant` | `Cloud-IDE-JWT` + `x-device-id` | 4001 | 工作裂变奖励（邀请裂变机制） |
@@ -334,7 +334,7 @@ SAAS 版的企业用户管理功能。
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    TRAE SOLO CN 业务架构                      │
+│                      TRAE CN 业务架构                         │
 ├─────────────────────────────────────────────────────────────┤
 │  ① 核心 IDE       → 远程环境、项目、MCP、技能、聊天会话         │
 │  ② 账号体系       → 登录/设备绑定/OAuth/第三方集成              │

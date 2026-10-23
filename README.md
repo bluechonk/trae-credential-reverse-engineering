@@ -2,7 +2,7 @@
 
 Windows 上 **TRAE CN**（原名 TRAE SOLO CN / TraeWork CN）桌面客户端凭证存储的系统性逆向工程。
 
-> **2026-10-24 更新**：桌面客户端已改名 **Trae CN**（%LOCALAPPDATA%\Programs\Trae CN），本地解密链路已在 Trae CN v1.107.1 重测通过（byteCrypto 新锚点）；域名规划、登录 URL 与模型请求对齐 modelmux traecn 渠道实测（OAuth 迁至 `api.trae.com.cn`，模型走 `trae-api-cn.mchost.guru`）。详见 `docs/FLOW.md` §七。
+> **2026-10-24 更新**：桌面客户端已改名 **Trae CN**（%LOCALAPPDATA%\Programs\Trae CN），本地解密链路已在 Trae CN v1.107.1 重测通过（byteCrypto 新锚点）；域名规划、登录 URL 与模型请求对齐 modelmux traecn 渠道实测（OAuth 迁至 `api.trae.com.cn`，模型走 `trae-api-cn.mchost.guru`）。详见 `docs/FLOW.md` §九。
 
 ## 成果
 
@@ -39,7 +39,7 @@ npx vitest run          # 18/18 通过
 | 2. 数据收集 | 定位凭证存储 | `storage.json` 在 `globalStorage/` |
 | 3. 格式分析 | 熵值与魔数 | 自定义 byteCrypto 信封（非 DPAPI） |
 | 4. 加密识别 | 定位加密代码 | `out/main.js` byteCrypto 模块 |
-| 5. 密钥提取 | 获取 pepper 表 | 4 张 64B 表，位于 `,Em=async t=>` 锚点 |
+| 5. 密钥提取 | 获取 pepper 表 | 4 张 64B 表，锚点随版本轮换（双锚点候选：旧 `Em=async` / 新 `userStorage.js` 模块路径） |
 | 6. 解密验证 | 解密 + API 测试 | 4/4 解密成功，`loginAllowed:true` |
 
 ## API 发现（89 个端点已测试）
@@ -80,6 +80,9 @@ npx vitest run          # 18/18 通过
 密钥派生：`pepper = Vie[i] ^ Qie[i]` → `derived = SHA512(SHA512(random) || pepper)` → `key = derived[0:16], iv = derived[16:32]`
 
 ### ExchangeToken（Token 续期）
+
+端点双候选（2026-10 对齐 modelmux 实测）：新 `https://api.trae.com.cn/cloudide/api/v3/trae/oauth/ExchangeToken` 优先，旧 `https://api.trae.cn/trae/api/v3/oauth/ExchangeToken` 自动回退。请求体：
+
 ```json
 {
   "ClientID": "en1oxy7wnw8j9n",
@@ -93,9 +96,10 @@ npx vitest run          # 18/18 通过
 }
 ```
 
-签名原文：`"POST\n/trae/api/v3/oauth/ExchangeToken\n<ClientID>\n<RefreshToken>\n<Timestamp>\n<Nonce>"`
+签名原文（path 按当前尝试的端点计算）：`"POST\n<path>\n<ClientID>\n<RefreshToken>\n<Timestamp>\n<Nonce>"`
 
 > **发现的 3 个坑**：`x-cloudide-token` 必须为空字符串、`DeviceProof` 字段名必须 PascalCase、`DeviceInfo` 指纹必须与注册时一致。
+> 注意：网页授权凭据（`login` 命令产物）与 IDE 本地解密凭据不同源——前者刷新用简化 body（无设备签名），见 `traeUpstream.ts`。
 
 ### 可用 API（18 个）
 
@@ -111,16 +115,17 @@ npx vitest run          # 18/18 通过
 
 ```
 src/
-├── index.ts                          ← CLI（7 个命令）
+├── index.ts                          ← CLI（11 个命令）
 ├── phase1-reconnaissance/index.ts
 ├── phase2-data-collection/index.ts
 ├── phase3-format-analysis/index.ts
 ├── phase4-encryption-id/
 ├── phase5-key-extraction/
 ├── phase6-decryption/
-│   ├── byteCrypto.ts                 ← 核心：信封 + 表提取
-│   ├── traeClient.ts                 ← ExchangeToken + 签到客户端
-│   ├── flows.ts                      ← checkin/refresh 编排
+│   ├── byteCrypto.ts                 ← 核心：信封 + 表提取（双锚点候选）
+│   ├── traeClient.ts                 ← ExchangeToken（双端点）+ 签到客户端
+│   ├── traeUpstream.ts               ← 登录 URL + GetUserInfo + 模型请求
+│   ├── flows.ts                      ← checkin/refresh/models 编排
 │   ├── decryptTraeAuth.ts            ← 批量解密
 │   └── validate.ts                   ← API 验证
 └── utils/

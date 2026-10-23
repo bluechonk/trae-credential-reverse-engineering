@@ -176,3 +176,15 @@ RefreshToken, Token, TokenExpireAt, TokenExpireDuration, UserJwt`
 
 证据文件：`output/phase6/validation.json`、`output/checkin-run.log`、
 `output/exchange-result.json`、`output/phase6/decrypted/*.json`（敏感，已 gitignore）
+
+---
+
+## 2026-10-24 重测（Trae CN 1.107.1）
+
+- 安装：`%LOCALAPPDATA%\Programs\Trae CN`；数据：`%APPDATA%\Trae CN\User\globalStorage\storage.json`
+- byteCrypto 旧锚点 `Em=async` 失效（混淆轮换），改用 `components/userStorage.js` 模块路径串锚点
+- 解密 **4/4 通过**（AES 模式，SHA-512 完整性校验通过）：cloudide 凭据 / 设备密钥对 / usertag / iCubeServerData
+- 设备 ID `1448****8571` 双安装共享不变；MachineID 取当前安装 `telemetry.machineId`
+- token 活性：`POST api.trae.com.cn/cloudide/api/v3/trae/GetUserInfo` → 200（x-cloudide-token）
+- 模型请求：`GET trae-api-cn.mchost.guru/api/remote/v1/models` → 200（45 模型）；`POST /api/ide/v1/batch_get_detail_param` → 200（22 通道）
+- 证据：`output/phase6/models.json`；详见 `docs/FLOW.md` §九

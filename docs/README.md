@@ -12,8 +12,8 @@
 | `phase4-encryption-id/` | RUN-LOG.md — 加密特征搜索 + 密文头解码 | ✅ 完成 |
 | `phase5-key-extraction/` | RUN-LOG.md — 硬编码表指纹提取 | ✅ 补充 |
 | `phase6-decryption/` | RUN-LOG.md — 解密/API验证/签到/续期 | ✅ 完成 |
-| `FINDINGS.md` | 完整分析报告（算法细节） | ✅ 持续更新 |
-| `FLOW.md` | 全流程手册（六阶段+签到+续期+踩坑） | ✅ 完成 |
+| `FINDINGS.md` | 完整分析报告（算法细节；2026-10-24 随 Trae CN 更名重测更新） | ✅ 持续更新 |
+| `FLOW.md` | 全流程手册（六阶段+签到+续期+踩坑；§九为 2026-10 域名规划/登录/模型更新） | ✅ 完成 |
 | `PATH-HARDENING.md` | 硬编码路径治理（动态解析改造+验证证据） | ✅ 完成 |
 
 > 说明：按需求不做截图，以实际控制台输出记录为准；PNG 可后续按需补充。

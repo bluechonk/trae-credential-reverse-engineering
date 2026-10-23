@@ -46,8 +46,8 @@ const AES_CONFIGS = [
 export async function phase6(): Promise<void> {
   console.log(chalk.gray('Decrypting and validating credentials...\n'));
 
-  // ─── Path A: TRAE SOLO CN native auth storage (byteCrypto envelope) ───
-  console.log(chalk.cyan('[Path A] TRAE SOLO CN auth storage (iCubeAuthInfo)\n'));
+  // ─── Path A: TRAE native auth storage (byteCrypto envelope) ───
+  console.log(chalk.cyan('[Path A] TRAE auth storage (iCubeAuthInfo)\n'));
   const traeResult = await decryptTraeAuth();
   if (traeResult && traeResult.decrypted.length > 0) {
     console.log(chalk.green(`  Decrypted ${traeResult.decrypted.length}/${traeResult.totalKeys} entries via byteCrypto envelope.\n`));
